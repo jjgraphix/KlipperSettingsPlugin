@@ -1,0 +1,7 @@
+{
+    "metadata": {
+        "name": "Klipper Light",
+        "inherits": "cura-light"
+    },
+    "base_colors":{}
+}
