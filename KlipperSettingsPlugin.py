@@ -72,7 +72,7 @@ class KlipperSettingsPlugin(Extension):
         resource_path = os.path.join(os.path.dirname(__file__), "resources")
         # Resources.addSearchPath(resource_path) # Local resource path (future use)
 
-        category_icon = self._updateCategoryIcon(resource_path, "Klipper") # Custom category icon
+        category_icon = self.updateCategoryIcon(resource_path, "Klipper") # Custom category icon
 
         self._category_key = "klipper_settings"
         self._category_dict = {
