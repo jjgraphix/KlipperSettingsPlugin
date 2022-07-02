@@ -4,7 +4,7 @@
 
 Unofficial Cura plugin which adds a new "Klipper Settings" category and a number of Klipper-specific setting features to the bottom of the Cura settings list. Designed to work natively on any printer running Klipper without the need for macros.
 
-This is a work in progress spawned from my [PressureAdvanceSettingPlugin](https://github.com/jjgraphix/PressureAdvanceSettingPlugin) which this is intended to take the place of. The current Beta version implements the same Pressure Advance settings as well as detailed options to initiate Klipper's Tuning Tower sequence and control various velocity limits.
+This is a work in progress spawned from my [PressureAdvanceSettingPlugin](https://github.com/jjgraphix/PressureAdvanceSettingPlugin) which this is intended to take the place of. The current version implements the same Pressure Advance settings into the new category as well as options to initiate Klipper's Tuning Tower sequence and various other Klipper settings.
 
 Additional features are in the works but please feel free to propose suggestions.<br/><br/>
 
@@ -35,9 +35,9 @@ Tested up to Cura 5.0 but current version has not yet been extensively tested in
 
 ### How to Use
 
-Once installed, the Klipper Settings category will initially be hidden but should show up at the bottom of the setting visibility preferences. If they don't appear, try selecting the "All" settings preset. Enable visibility of every settings to ensure it's working then hide whatever you don't plan to use. I suggest leaving visibility enabled for settings like the "Apply Suggested Settings" preset option as they will only become visible for specific settings.
+Once installed, the Klipper Settings category will initially be hidden but should show up at the bottom of the setting visibility preferences. If they don't appear, try selecting the "All" settings preset. Enable visibility of every settings to ensure it's working then hide whatever you don't plan to use. I suggest leaving visibility enabled for checkbox settings like the _Apply Suggested Settings_ preset option since they only become visible for specific settings.
 
-Read setting tooltips for additional help with current features.
+<strong>Read setting tooltips for additional help with current features.</strong>
 
 <details><summary><em>List of Supported Klipper Settings</em></summary><br>
   <strong>Read tooltips to understand why some settings can have negative values.</strong><br/><br/>
@@ -50,7 +50,9 @@ Read setting tooltips for additional help with current features.
   
   ![image](https://github.com/jjgraphix/KlipperSettingsPlugin/blob/main/resources/images/ksp_ttsettings_0.9.0.JPG)
   
-</details><br/>
+</details>
+
+I highly recommend also using Ghostkeeper's amazing [SettingsGuide](https://github.com/Ghostkeeper/SettingsGuide) to improve readability of tooltips.<br/><br/>
 
 ## Installation
 ### If Plugin Already Installed
