@@ -1,4 +1,4 @@
-# KlipperSettingsPlugin v0.8.0 - Beta
+# KlipperSettingsPlugin v0.9.0 - Beta
 # Copyright (c) 2022 J.Jarrard / JJFX
 # The KlipperSettingsPlugin is released under the terms of the AGPLv3 or higher.
 #
@@ -15,17 +15,31 @@
 # -------------------------------------------------
 # Version | Release Notes & Features
 # -------------------------------------------------
-# v0.8.0  | Tested up to Cura version 5.0
+# v0.8.0  + Tested up to Cura version 5.0
 #         | Pressure Advance Settings (v1.5)
-#         | Tuning Tower Settings  (v1.0)
-#         | Velocity Limits Settings (v1.0)
-#
+#         | Tuning Tower Settings
+#         | Velocity Limits Settings
+# v0.8.1  + Fixed custom category icon
+# v0.9.0  + Firmware Retraction Settings
+#         | Input Shaper Settings
+#         | Tuning Tower Presets feature
+#         | Tuning Tower Suggested Settings feature
+#         | Tuning Tower Preset: Pressure Advance
+#         | Tuning Tower Preset: Ringing Tower
+
 
 import os.path, json
 from collections import OrderedDict # Ensure order of imported settings in all versions
-from typing import List, Optional, Any, Dict, TYPE_CHECKING
+from typing import List, Optional, Any, Dict, Set, TYPE_CHECKING
 
 from cura.CuraApplication import CuraApplication
+
+try:
+    from PyQt6.QtCore import QUrl, QObject, pyqtProperty, pyqtSignal
+except ImportError: # Older cura versions
+    from PyQt5.QtCore import QUrl, QObject, pyqtProperty, pyqtSignal
+
+from UM.Qt.Bindings.Theme import Theme # Update theme with path to custom icon
 
 from UM.Extension import Extension
 from UM.Logger import Logger
@@ -39,8 +53,8 @@ from UM.Settings.ContainerRegistry import ContainerRegistry
 from UM.Message import Message # Display messages to user
 from UM.Scene.Iterator.DepthFirstIterator import DepthFirstIterator # To parse per-object settings
 
-from UM.i18n import i18nCatalog
-i18n_catalog = i18nCatalog("KlipperSettingsPlugin")
+from UM.i18n import i18nCatalog # Translations
+i18n_catalog = i18nCatalog("cura")
 
 if TYPE_CHECKING:
     from UM.OutputDevice.OutputDevice import OutputDevice
@@ -52,17 +66,29 @@ class KlipperSettingsPlugin(Extension):
         self._application = CuraApplication.getInstance()
 
         self._i18n_catalog = None  # type: Optional[i18nCatalog]
-
-        self._settings_dict = {}   # type: Dict[str, Any]
         
+        self._settings_dict = {}   # type: Dict[str, Any]
+
+        resource_path = os.path.join(os.path.dirname(__file__), "resources")
+        # Resources.addSearchPath(resource_path) # Local resource path (future use)
+
+        category_icon = self._updateCategoryIcon(resource_path, "Klipper") # Custom category icon
+
         self._category_key = "klipper_settings"
         self._category_dict = {
             "label": "Klipper Settings",
             "description": "Features and Settings Specific to Klipper Firmware",
             "type": "category",
-            "icon": "Quick"     # Temp - Need solution for loading the custom icon without creating theme
-            #"icon": "Klipper"
+            "icon": "%s" % category_icon
         }
+        ## Message box placeholder
+        self._previous_msg = None
+
+        ## Globals for tuning tower functions
+        self._user_settings = {}    # type: Dict[str, Any] # User settings to restore
+        self._custom_preset = {}    # type: Dict[str, Any] # Preset values for comparison
+        self._current_preset = None # type: str # Current preset name
+        self._override_on = False   # type: bool # Override settings state
 
         try:
             with open(os.path.join(os.path.dirname(__file__), "klipper_settings.def.json"), encoding = "utf-8") as f:
@@ -71,30 +97,39 @@ class KlipperSettingsPlugin(Extension):
             Logger.logException('e', "Could not load klipper settings definition")
             return
 
-        # Local resource path for scripts and other elements (future use)
-        Resources.addSearchPath(os.path.join(os.path.dirname(__file__), "resources"))
-
         ContainerRegistry.getInstance().containerLoadComplete.connect(self._onContainerLoadComplete)
-        self._application.engineCreatedSignal.connect(self._fixCategoryVisibility) # Check visibility at start
         self._application.getPreferences().preferenceChanged.connect(self._fixCategoryVisibility)
+        self._application.initializationFinished.connect(self._startActions)
 
         self._application.getOutputDeviceManager().writeStarted.connect(self._filterGcode)
 
+        # TODO: Signal to emit only when settings change
+        self._application.getController().getScene().sceneChanged.connect(self._tuningPresets)
+
+    def _startActions(self) -> None:
+        # Checks visibility of new category
+        self._fixCategoryVisibility()
+        # Checks for user settings backed up in Cura config
+        self._user_settings = self._getBackup() # type: Dict[str, Any]
+        # Disables tuning tower preset override
+        self._restoreUserSettings(announce = False)
+        # Default placeholders for custom preset
+        self._custom_preset.update(self.getTowerDefaults())
 
     def _onContainerLoadComplete(self, container_id: str) -> None:
-        # -----------------------------------------------------------------------------------------
-        #  Parse loaded containers until definition container is found.
-        #  Register new 'Klipper Settings' category and add imported settings to it.
-        # -----------------------------------------------------------------------------------------
+        """Parses loaded containers on startup to find definition container.
+
+        Registers new 'Klipper Settings' category to import setting definition json.
+        """
         if not ContainerRegistry.getInstance().isLoaded(container_id):
             return # Skip containers that could not be loaded to avoid infinite findContainers() loop
-
         try:
             container = ContainerRegistry.getInstance().findContainers(id = container_id)[0]
+            self._container = container
         except IndexError:
             return # Container no longer exists
 
-        if not isinstance(container, DefinitionContainer) or container.getMetaDataEntry("type") == "extruder":
+        if not isinstance(container, DefinitionContainer) or container.getMetaDataEntry('type') == "extruder":
             return # Skip non-definition containers
 
         # Create new settings category
@@ -105,8 +140,9 @@ class KlipperSettingsPlugin(Extension):
 
         try: # Make sure new category actually exists
             klipper_category = container.findDefinitions(key=self._category_key)[0]
+            self._category = klipper_category
         except IndexError:
-            Logger.log('e', "Could not find new settings category: '%s'", self._category_key)
+            Logger.log('e', "Could not find settings category: '%s'", self._category_key)
             return
 
         # Add all setting definitions to new category
@@ -116,14 +152,14 @@ class KlipperSettingsPlugin(Extension):
 
             klipper_category._children.append(setting_definition)
             container._definition_cache[setting_key] = setting_definition
-            # Check for setting children
+
             if setting_definition.children:
                 self._updateAddedChildren(container, setting_definition)
 
         container._updateRelations(klipper_category) # Update relations of all category settings
 
     def _updateAddedChildren(self, container: DefinitionContainer, setting_definition: SettingDefinition) -> None:
-        #  Update definition cache for setting definition children
+        ## Update definition cache for setting definition children
         for child in setting_definition.children:
             container._definition_cache[child.key] = child
 
@@ -131,9 +167,9 @@ class KlipperSettingsPlugin(Extension):
                 self._updateAddedChildren(container, child)
 
     def _fixCategoryVisibility(self, preference: str = "general/visible_settings") -> None:
-        # -----------------------------------------------------------------------------------------
-        #  Ensure new category is in visibile settings at start and when visible settings change.
-        # -----------------------------------------------------------------------------------------
+        """Ensure category is visibile at start and when visibility changes.
+
+        """
         if preference != "general/visible_settings":
             return
 
@@ -141,22 +177,52 @@ class KlipperSettingsPlugin(Extension):
         visible_settings = preferences.getValue(preference)
 
         if not visible_settings:
-            return # List could be empty and is fixed once user adds a visibile setting
+            return # Empty list fixed once user adds a visibile setting
 
         if self._category_key not in visible_settings:
             visible_settings += ";%s" % self._category_key
 
-            preferences.setValue(preference, visible_settings) # Add category to visible settings
+            preferences.setValue(preference, visible_settings) # Category added to visible settings
 
+    def updateCategoryIcon(self, icon_path: str, icon_name: str) -> str:
+        """Updates theme with local path to custom category icon
+
+        If icon file doesn't exist, default_icon will be returned
+          icon_path: String for icon file location
+          icon_name: String for name of icon file without extension
+        Returns: String for icon to set
+        """
+        theme = Theme.getInstance()
+        icon_path = os.path.join(icon_path, "icons", "%s.svg" % icon_name)
+        default_icon = "Quick" # Random existing Cura icon
+
+        if not os.path.exists(icon_path):
+            category_icon = default_icon
+            Logger.log('d', "Custom icon file could not be found.")
+        else:
+            category_icon = icon_name
+            # Add new icon path to current theme (thanks batman)
+            if icon_name not in theme._icons['default']:
+                theme._icons['default'][icon_name] = QUrl.fromLocalFile(icon_path)
+
+        return category_icon
+
+    def _fixValueErrorBug(self) -> None:
+        """Forces error check for tuning tower setting values.
+
+        Fixes apparent Cura bug not recognizing default values as an error.
+        """
+        machine_manager = self._application.getMachineErrorChecker()
+
+        for key, setting in self.__tuning_tower_setting_key.items():
+            machine_manager.startErrorCheckPropertyChanged(setting, "value")
 
     def _filterGcode(self, output_device: "OutputDevice") -> None:
-        # -----------------------------------------------------------------------------------------
-        #  Check for enabled settings then insert commands for each at start of gcode.
-        #  Parse gcode to insert extruder and/or per-object Pressure Advance settings into gcode.
-        # -----------------------------------------------------------------------------------------
+        """Inserts enabled Klipper settings into final gcode.
+
+        """
         scene = self._application.getController().getScene()
         global_stack = self._application.getGlobalContainerStack()
-        extruder_manager = self._application.getExtruderManager()
         used_extruder_stacks = self._application.getExtruderManager().getUsedExtruderStacks()
 
         if not global_stack or not used_extruder_stacks:
@@ -167,11 +233,13 @@ class KlipperSettingsPlugin(Extension):
         support_per_object_settings = version >= Version("4.7.0")
 
         # Retrieve state of klipper setting controls (bool)
-        pressure_advance_enabled = global_stack.getProperty("klipper_pressure_advance_enable", "value")
-        velocity_limits_enabled = global_stack.getProperty("klipper_velocity_limits_enable", "value")
-        tuning_tower_enabled = global_stack.getProperty("klipper_tuning_tower_enable", "value")
+        firmware_retraction_enabled = global_stack.getProperty('machine_firmware_retract', 'value')
+        pressure_advance_enabled = global_stack.getProperty('klipper_pressure_advance_enable', 'value')
+        velocity_limits_enabled = global_stack.getProperty('klipper_velocity_limits_enable', 'value')
+        input_shaper_enabled = global_stack.getProperty('klipper_input_shaper_enable', 'value')
+        tuning_tower_enabled = global_stack.getProperty('klipper_tuning_tower_enable', 'value')
 
-        gcode_dict = getattr(scene, "gcode_dict", {})
+        gcode_dict = getattr(scene, 'gcode_dict', {})
         if not gcode_dict: # this also checks for an empty dict
             Logger.log('w', "Scene has no gcode to process")
             return
@@ -191,14 +259,15 @@ class KlipperSettingsPlugin(Extension):
                 Logger.log('d', "Plate %s has already been processed", plate_id)
                 continue
 
-            # KLIPPER TUNING TOWER COMMAND --------------------------------------------------------
+
+            ## KLIPPER TUNING TOWER COMMAND -------------------------
             if not tuning_tower_enabled:
                 Logger.log('d', "Klipper Tuning Tower is Disabled")
             else:
                 tower_settings = {} # type: Dict[str, Any]
-                # Parse tuning tower settings to pass to function
+                # Get tuning tower settings to pass to function
                 for tower_key, tower_setting in self.__tuning_tower_setting_key.items():
-                    tower_settings[tower_key] = global_stack.getProperty(tower_setting, "value")
+                    tower_settings[tower_key] = global_stack.getProperty(tower_setting, 'value')
 
                 try: # Add returned command to start of gcode
                     gcode_list[1] = gcode_list[1] + (
@@ -210,14 +279,14 @@ class KlipperSettingsPlugin(Extension):
                     Logger.log('e', "Tuning tower command could not be processed")
                     return # Stop on error
 
-            # KLIPPER VELOCITY LIMITS COMMAND -----------------------------------------------------
+            ## KLIPPER VELOCITY LIMITS COMMAND ----------------------
             if not velocity_limits_enabled:
                 Logger.log('d', "Klipper Velocity Limit Control is Disabled")
             else:
                 velocity_limits = {} # type: Dict[str, int]
-                # Parse velocity settings to pass to function
+                # Get velocity settings to pass to function
                 for limit_key, limit_setting in self.__velocity_limit_setting_key.items():
-                    velocity_limits[limit_key] = global_stack.getProperty(limit_setting, "value")
+                    velocity_limits[limit_key] = global_stack.getProperty(limit_setting, 'value')
 
                 try: # Add returned command to start of gcode
                     gcode_list[1] = gcode_list[1] + (
@@ -228,26 +297,62 @@ class KlipperSettingsPlugin(Extension):
                 except TypeError:
                     Logger.log('d', "Klipper velocity limits were not changed")
 
-            # KLIPPER PRESSURE ADVANCE COMMAND ----------------------------------------------------
+            ## KLIPPER FIRMWARE RETRACTION COMMAND ------------------
+            if not firmware_retraction_enabled:
+                Logger.log('d', "Firmware Retraction is Disabled")
+            else:
+                retraction_settings = {} # type: Dict[str, float]
+                # Get firmware retraction settings to pass to function
+                for retract_key, retract_setting in self.__firmware_retraction_setting_key.items():
+                    retraction_settings[retract_key] = global_stack.getProperty(retract_setting, 'value')
+
+                try: # Add returned command to start of gcode
+                    gcode_list[1] = gcode_list[1] + (
+                        self._gcodeFirmwareRetraction(retraction_settings) + ";KlipperSettingsPlugin\n")
+
+                    dict_changed = True
+
+                except TypeError:
+                    Logger.log('d', "Firmware retraction settings were not changed")
+
+            ## KLIPPER INPUT SHAPER COMMAND -------------------------
+            if not input_shaper_enabled:
+                Logger.log('d', "Input Shaper is Disabled")
+            else:
+                shaper_settings = {} # type: Dict[str, Any]
+                # Get input shaper settings to pass to function
+                for shaper_key, shaper_setting in self.__input_shaper_setting_key.items():
+                    shaper_settings[shaper_key] = global_stack.getProperty(shaper_setting, 'value')
+
+                try: # Add returned command to start of gcode
+                    gcode_list[1] = gcode_list[1] + (
+                        self._gcodeInputShaper(shaper_settings) + ";KlipperSettingsPlugin\n")
+
+                    dict_changed = True
+
+                except TypeError:
+                    Logger.log('d', "Input shaper settings were not changed")
+
+            ## KLIPPER PRESSURE ADVANCE COMMAND ---------------------
             if not pressure_advance_enabled:
                 Logger.log('d', "Klipper Pressure Advance Control is Disabled")
                 break
 
-            # Extruder Dictionaries
+            ## Extruder Dictionaries
             apply_factor_per_feature = {}  # type: Dict[int, bool]
             current_advance_factors = {}   # type: Dict[int, float]
             per_extruder_settings = {}     # type: Dict[(int,str), float]
-            # Mesh Object Dictionaries
+            ## Mesh Object Dictionaries
             apply_factor_per_mesh = {}     # type: Dict[str, bool]
             per_mesh_settings = {}         # type: Dict[(str,str), float]
 
-            non_mesh_features = [*self.__gcode_type_to_setting_key][8:] # SUPPORT, SKIRT, etc.
+            non_mesh_features = [*self.__pressure_advance_setting_key][8:] # SUPPORT, SKIRT, etc.
             parent_setting_key = "klipper_pressure_advance_factor" # Primary setting
 
-            ### Get settings for all active extruders
+            # Get settings for all active extruders
             for extruder_stack in used_extruder_stacks:
-                extruder_nr = int(extruder_stack.getProperty("extruder_nr", "value"))
-                pressure_advance_factor = extruder_stack.getProperty(parent_setting_key, "value")
+                extruder_nr = int(extruder_stack.getProperty('extruder_nr', 'value'))
+                pressure_advance_factor = extruder_stack.getProperty(parent_setting_key, 'value')
                 current_advance_factors[extruder_nr] = pressure_advance_factor
 
                 try: # Add primary value of each extruder to start of gcode
@@ -261,17 +366,16 @@ class KlipperSettingsPlugin(Extension):
                     return
 
                 # Get all feature settings for each extruder
-                for feature_key, setting_key in self.__gcode_type_to_setting_key.items():
-                    per_extruder_settings[(extruder_nr, feature_key)] = extruder_stack.getProperty(setting_key, "value")
+                for feature_key, setting_key in self.__pressure_advance_setting_key.items():
+                    per_extruder_settings[(extruder_nr, feature_key)] = extruder_stack.getProperty(setting_key, 'value')
 
                     # Check for unique feature settings
                     if per_extruder_settings[(extruder_nr, feature_key)] != pressure_advance_factor:
                         apply_factor_per_feature[extruder_nr] = True # Flag to process gcode
 
-
-            ### Get settings for all printable mesh objects that are not support
+            # Get settings for all printable mesh objects that are not support
             nodes = [node for node in DepthFirstIterator(scene.getRoot())
-                     if node.isSelectable()and not node.callDecoration("isNonThumbnailVisibleMesh")]
+                     if node.isSelectable()and not node.callDecoration('isNonThumbnailVisibleMesh')]
             if not nodes:
                 Logger.log('w', "No valid objects in scene to process")
                 return
@@ -282,11 +386,11 @@ class KlipperSettingsPlugin(Extension):
                     break # Use extruder values for older Cura versions
 
                 mesh_name = node.getName() # Filename of mesh with extension
-                mesh_settings = node.callDecoration("getStack").getTop()
-                extruder_nr = int(node.callDecoration("getActiveExtruderPosition"))
+                mesh_settings = node.callDecoration('getStack').getTop()
+                extruder_nr = int(node.callDecoration('getActiveExtruderPosition'))
 
                 # Get all feature settings for each mesh object
-                for feature_key, setting_key in self.__gcode_type_to_setting_key.items():
+                for feature_key, setting_key in self.__pressure_advance_setting_key.items():
                     if mesh_settings.getInstance(setting_key) is not None:
                         mesh_setting_value = mesh_settings.getInstance(setting_key).value
                     else:
@@ -298,7 +402,7 @@ class KlipperSettingsPlugin(Extension):
 
                     # Save the children!
                     for feature in (
-                        [*self.__gcode_type_to_setting_key][4:8] if feature_key == "_FACTORS"
+                        [*self.__pressure_advance_setting_key][4:8] if feature_key == "_FACTORS"
                             else ['WALL-OUTER', 'WALL-INNER'] if feature_key == "_WALLS"
                             else ['SUPPORT', 'SUPPORT-INTERFACE'] if feature_key == "_SUPPORTS"
                             else [feature_key]):
@@ -310,11 +414,12 @@ class KlipperSettingsPlugin(Extension):
 
                                 apply_factor_per_feature[extruder_nr] = True # Flag to process gcode
 
-            ### Post-process gcode loop
+
+            ## Post-process gcode loop
             if any(apply_factor_per_feature.values()):
                 active_extruder_list = [*apply_factor_per_feature] # type: List[int]
                 active_mesh_list = [*zip(*per_mesh_settings)][0]   # type: List[str]
-                # Loop start parameters
+
                 extruder_nr = active_extruder_list[0] # Start with first extruder
                 current_mesh = None
                 current_layer_nr = -1
@@ -391,100 +496,445 @@ class KlipperSettingsPlugin(Extension):
             gcode_dict[plate_id] = gcode_list
             setattr(scene, 'gcode_dict', gcode_dict)
 
+    def _gcodeVelocityLimits(self, velocity_limits: Dict[str, float]) -> str:
+        """Parse enabled velocity settings into gcode command string.
 
-    def _gcodeTuningTower(self, tower_settings: Dict[str, str]) -> str:
-        # -----------------------------------------------------------------------------------------
-        #  Parse enabled tuning tower settings to return as single gcode command
-        # -----------------------------------------------------------------------------------------
-        tower_settings = {key: i for key, i in tower_settings.items() if not (
-            key in ['skip', 'band'] and i == 0)} # Remove opt. values set to 0
-
-        # Strip any leading/trailing quotes and other characters
-        for index, cmd in enumerate(['command', 'parameter']):
-            tower_settings[cmd] = tower_settings[cmd].strip('.,;="\'')
-            # Validate reasonable string length and that parameter is one word
-            if len(tower_settings[cmd]) > 50 or (index == 1 and len(tower_settings[cmd].split()) > 1):
-                self.showMessage(
-                    "<b>Command</b> and/or <b>Parameter</b> settings are too long!<br />",
-                    "ERROR", "Klipper Tuning Tower Disabled", 30)
-                return # TypeError
-
-        # Add single quotes if command has multiple words
-        if len(tower_settings['command'].split()) > 1:
-            tower_settings['command'] = "'%s'" % tower_settings['command']
-
-        gcode_command = "TUNING_TOWER "
-        method = tower_settings.pop('tuning_method') # Get method and remove from dict
-
-        for tower_key, tower_value in tower_settings.items():
-            if method == "factor" and tower_key in ['step_delta', 'step_height']:
-                continue
-            if method == "step" and tower_key in ['factor', 'band']:
-                continue
-
-            gcode_command += "%s=%s " % (tower_key.upper(), tower_value)
-        
-        # Remind user tuning tower sequence is active
-        self.showMessage(
-            "Tuning tower sequence will affect <em><b>all objects</b></em> on the build plate.",
-            "NEUTRAL", "Klipper Tuning Tower Enabled")
-
-        return gcode_command
-
-    def _gcodeVelocityLimits(self, velocity_limits: Dict[str, int]) -> str:
-        # -----------------------------------------------------------------------------------------
-        #  Parse enabled velocity settings to return as single gcode command
-        # -----------------------------------------------------------------------------------------
-        if velocity_limits['square_corner_velocity'] == 0:
-            self.showMessage(
-                "<b>WARNING:</b> Square Corner Velocity is set to 0<br /><br /> <em>To disable control, value must be set to -1</em>",
-                "WARNING", "Klipper Velocity Limits", 30)
-
+        """
         # Remove disabled settings
         velocity_limits = {key: d for key, d in velocity_limits.items() if (
             key != "square_corner_velocity" and d > 0) or (
             key == "square_corner_velocity" and d >= 0)}
 
-        if any(value >= 0 for value in velocity_limits.values()):
+        if len(velocity_limits) > 0:
             gcode_command = "SET_VELOCITY_LIMIT "
 
-            for limit_key, limit_value in velocity_limits.items():
-                gcode_command += "%s=%d " % (limit_key.upper(), limit_value) # Create gcode command
+            for key, value in velocity_limits.items():
+                gcode_command += "%s=%d " % (key.upper(), value) # Create gcode command
+                
+                if key == "square_corner_velocity" and value == 0:
+                    self.showMessage(
+                      "WARNING: Square Corner Velocity is set to 0<br /><br /> <i>To disable slicer control, value must be -1</i>",
+                      "WARNING", "Klipper Velocity Limits", 25)
 
-            return gcode_command # TypeError if no return
+            return gcode_command # TypeError msg if no return
+
+    def _gcodeFirmwareRetraction(self, retraction_settings: Dict[str, float]) -> str:
+        """Parses enabled firmware retraction settings into gcode command string.
+
+        """
+        # Remove disabled settings
+        retraction_settings = {key: d for key, d in retraction_settings.items() if (
+            key.endswith("speed") and d > 0) or (
+            key.endswith("length") and d >= 0)}
+
+        if len(retraction_settings) > 0:
+            gcode_command = "SET_RETRACTION "
+
+            for key, value in retraction_settings.items():
+                gcode_command += "%s=%g " % (key.upper(), value) # Create gcode command
+
+            return gcode_command # TypeError msg if no return
+
+    def _gcodeInputShaper(self, shaper_settings: Dict[str, Any]) -> str:
+        """Parses enabled input shaper settings into gcode command string.
+
+        """
+        if shaper_settings['shaper_type_x'] == shaper_settings['shaper_type_y']:
+            shaper_settings['shaper_type'] = shaper_settings.pop('shaper_type_x')
+            del shaper_settings['shaper_type_y'] # Use single command for both axes
+
+        # Remove all disabled settings
+        shaper_settings = {key: v for key, v in shaper_settings.items() if (
+            key.startswith("type", 7) and v != "disabled") or (
+            not key.startswith("type", 7) and v >= 0)}
+
+        warning_val = len([v for v in shaper_settings.values() if v == 0]) # Number of values = 0
+
+        if len(shaper_settings) > 0:
+            gcode_command = "SET_INPUT_SHAPER "
+
+            for key, value in shaper_settings.items():
+
+                gcode_command += "%s=%s " % (key.upper(), value) # Create gcode command
+
+            if warning_val > 0:
+                self.showMessage(
+                  "WARNING: %d input shaper value(s) set to 0.<br /><br /> <i>To disable slicer control, value must be -1</i>" % warning_val,
+                  "WARNING", "Klipper Input Shaper", 25)
+
+            return gcode_command # TypeError msg if no return
+
+
+    def _gcodeTuningTower(self, tower_settings: Dict[str, str]) -> str:
+        """Parses enabled tuning tower settings into gcode command string.
+
+        """
+        # Remove disabled and optional values
+        tower_settings = {key: i for key, i in tower_settings.items() if not (
+            key in ['skip', 'band'] and i == 0)}
+
+        ## Most input validation done with setting definition regex patterns
+        tower_settings['command'] = tower_settings['command'].strip(" '=")
+        # Add single quotes if command has multiple words
+        if len(tower_settings['command'].split()) > 1:
+            tower_settings['command'] = "'%s'" % tower_settings['command']
+
+        gcode_command = "TUNING_TOWER "
+        method = tower_settings.pop('tuning_method')
+
+        for key, value in tower_settings.items():
+            if method == "factor" and key in ['step_delta', 'step_height']:
+                continue
+            if method == "step" and key in ['factor', 'band']:
+                continue
+
+            gcode_command += "%s=%s " % (key.upper(), value)
+
+        self.showMessage(
+          "Tuning tower settings will affect <b>all objects</b> on the build plate.",
+          "NEUTRAL", "Klipper Tuning Tower Enabled")
+
+        return gcode_command # TypeError stop if no return
+
+    def _tuningPresets(self, ignore_me = None) -> None:
+        """Controls all changes to tuning tower preset settings.
+
+        Any user settings changed by preset values are preserved and restored.
+        """
+        # TODO: Signal that only emits when settings are changed (remove ignore)
+        #     : Consider forcing visibility of override settings??
+        global_stack = self._application.getGlobalContainerStack()
+        tuning_tower_enabled = global_stack.getProperty('klipper_tuning_tower_enable', 'value')
+
+        if not tuning_tower_enabled:
+            self._restoreUserSettings() # Reset override if tuner tower disabled
+            self._current_preset = None
+
+            if self._previous_msg:
+                self._previous_msg.hide() # Hide enabled warning
+
+            return
+
+        elif not self._current_preset:
+            self._fixValueErrorBug() # Ensure user can't slice with value errors
+            self.showMessage(
+              "Tuning tower settings will affect <b>all objects</b> on the build plate.",
+              "WARNING", "Klipper Tuning Tower Enabled", 60) # Cura start warning
+
+
+        new_preset = global_stack.getProperty('klipper_tuning_tower_preset', 'value')
+        override = global_stack.getProperty('klipper_tuning_tower_override', 'value')
+
+        preset_settings = {} #type: Dict[str, Any]
+        preset_changed = self._current_preset not in [None, new_preset]
+        apply_preset = False
+
+        if not override:
+            self._restoreUserSettings()
+            apply_preset = preset_changed
+
+            self._override_on = False
+
+        elif preset_changed: # Reset override so user must re-enable it
+            self._restoreUserSettings()
+            return
+
+        elif not self._override_on:
+            apply_preset = True
+
+
+        if preset_changed:
+            # Save/restore tuning tower settings for 'custom' preset
+            if self._current_preset == "custom":
+                for setting in self.__tuning_tower_setting_key.values():
+                    self.settingWizard(setting, action = "SaveCustom")
+
+            elif new_preset == "custom":
+                for setting, value in self._custom_preset.items():
+                    self.settingWizard(setting, value, action = "Restore")
+
+            ## User preset action messages
+            if new_preset == "pressure":
+                self.showMessage(
+                  "Pressure Advance Calibration<br /><br /><i>Tuning Tower Factor:</i><br /><b>Direct Drive: .005<br />Bowden: .020</b><br /><br /><i>Print settings:</i><br /><b>High Print Speed: ~100+ mm/s<br />Course Layer Height: ~75% nozzle size</b>",
+                  "NEUTRAL", "Suggested Tuning Tower Settings", 60)
+            ## Next preset message...
+
+            # Hide last neutral message when preset changed
+            elif self._previous_msg:
+                if self._previous_msg.getMessageType() == 1:
+                    self._previous_msg.hide()
+
+
+        self._current_preset = new_preset
+
+        if apply_preset:
+            preset_settings = self.getPresetDefinition(new_preset, override)
+
+        if not preset_settings:
+            return
+
+
+        self._override_on = override
+
+        show_changes = ""
+        for setting, value in preset_settings.items():
+            # Ensure pressure advance subsettings are cleared
+            if setting == "klipper_pressure_advance_factor":
+                for subsetting in self.__pressure_advance_setting_key.values():
+                    self.settingWizard(subsetting, 0, "Save&Clear")
+
+            if setting.startswith("klipper_tuning"):
+                self.settingWizard(setting, value, "Set")
+
+            else: # Override enabled
+                self.settingWizard(setting, value, "Save&Set")
+
+                if setting in self._user_settings:
+                    # Get name and value of changed user settings
+                    setting_label = global_stack.getProperty(setting, 'label')
+                    show_changes += "%s = %s<br />" % (setting_label, value)
+                    Logger.log('d', "User setting changed: %s = %s", setting, value)
+
+        if show_changes:
+            self.showMessage(
+              "<b>Settings Changed:</b><br /><br />%s<br /><i>* Disable suggested settings to revert changes</i>" % show_changes,
+              "WARNING", "Tuning Tower Setting Override", 30)
+
+
+    def settingWizard(self, setting_key: str, new_value: Any=None, action: str="Save") -> None:
+        """Backup, remove or set Cura setting values.
+        
+          setting_key: String of an existing Cura setting.
+          new_value: New value for setting_key, or comparison value for Save.
+          action: String specifying the operation to perform.
+            Save (Default)    : Backup current value to dict and Cura config.
+            SaveCustom        : Backup current 'tuning tower' value in custom dict.
+            Restore           : Restore state from backup.
+            Clear, Save&Clear : Backup and/or reset to default value.
+            Set, Save&Set     : Backup and/or set new_value.
+        """
+        # TODO: Full support for multiple extruders not yet implemented!
+
+        global_stack = self._application.getGlobalContainerStack()
+        used_extruder_stacks = self._application.getExtruderManager().getUsedExtruderStacks()
+        preferences = self._application.getPreferences()
+
+        extruder_setting = global_stack.getProperty(setting_key,'settable_per_extruder')
+
+        for stack in (used_extruder_stacks if extruder_setting else [global_stack]):
+            current_value = stack.getProperty(setting_key, 'value')
+            change_value = current_value != new_value
+
+            if action.startswith("Save") and change_value:
+                if action.endswith("Custom"):
+                    self._custom_preset[setting_key] = current_value # global: Dict[str, Any]
+                else:
+                    self._user_settings[setting_key] = current_value # global: Dict[str, Any]
+                    # Additional backup stored in Cura config file
+                    preferences.addPreference("klipper_settings/%s" % setting_key, "")
+                    preferences.setValue("klipper_settings/%s" % setting_key, current_value)
+
+            if action.endswith("Set") and change_value:
+                stack.setProperty(setting_key, 'value', new_value) # Set new value
+
+            if action.endswith("Clear"): # All instances removed for reliability
+                stack.getTop().removeInstance(setting_key) # Remove setting instance
+
+            if action == "Restore":
+                backup_exists = preferences._findPreference("klipper_settings/%s" % setting_key)
+
+                stack.setProperty(setting_key, 'value', new_value) # Restore user value
+
+                if backup_exists:
+                    preferences.removePreference("klipper_settings/%s" % setting_key)
+                # Ensure setting instance is cleared if value same as default value.
+                if new_value == stack.getProperty(setting_key, 'default_value'):
+                    stack.getTop().removeInstance(setting_key)
+
+    def getTowerDefaults(self) -> Dict[str, Any]:
+        """Dict of default values for tuning tower settings.
+
+        """
+        global_stack = self._application.getGlobalContainerStack()
+        default_settings = {} # type: Dict[str, Any]
+
+        for setting in self.__tuning_tower_setting_key.values():
+            default_settings[setting] = global_stack.getProperty(setting, 'default_value')
+
+        return default_settings
+
+    def _getBackup(self) -> Dict[str, Any]:
+        """Dict of any backup settings saved to config file.
+
+        Should only be necessary if cura crashes force closed.
+        """
+        preferences = self._application.getPreferences()
+        settings_backup = {} # type: Dict[str, Any]
+        # List of settings potentially saved in config file.
+        check_list = self.getPresetDefinition('_all')
+
+        for key in check_list:
+            setting = preferences._findPreference("klipper_settings/%s" % key) # Verify setting exists
+
+            if setting:
+                # Retrieve backup from config file
+                settings_backup[key] = preferences.getValue("klipper_settings/%s" % key)
+                # Remove backup from config file
+                preferences.removePreference("klipper_settings/%s" % key)
+
+        if settings_backup:
+            Logger.log('d', "Setting backup retrieved from config file.")
+
+        return settings_backup
+
+    def _restoreUserSettings(self, announce: bool=True) -> None:
+        """Restore non tuning tower settings changed by preset.
+
+          announce: False disables status message when complete.
+        """
+        # Disable setting override if enabled
+        self.settingWizard('klipper_tuning_tower_override', action = "Clear")
+
+        if self._user_settings:
+
+            for setting, value in self._user_settings.items():
+                self.settingWizard(setting, value, "Restore")
+
+            self._user_settings.clear() # Clear backup
+
+            if not self._user_settings:
+                Logger.log('d', "User settings have been restored.")
+                if announce and self._override_on:
+                    self.showMessage(
+                      "Suggested tuning tower settings restored to original values.",
+                      "POSITIVE", "Suggested Settings Disabled", 5)
 
     def showMessage(self, text: str, msg_type = 1, msg_title: str="Klipper Settings", msg_time: int = 15) -> None:
-        # -----------------------------------------------------------------------------------------
-        #  Helper function to display messages to user
-        # -----------------------------------------------------------------------------------------
+        """Helper function to display messages to user.
+
+          text: String to set message status.
+          msg_type: String to set icon type ([0-3] or POSITIVE, NEUTRAL, WARNING, ERROR).
+          msg_title: String to set message title.
+          msg_time: Integer in seconds until message disappears.
+        """
         if not isinstance(msg_type, int):
             msg_type = (
                 0 if msg_type == "POSITIVE" else
                 1 if msg_type == "NEUTRAL" else
                 2 if msg_type == "WARNING" else 3 
             )
-        display_message = Message(text,
+        if self._previous_msg:
+            self._previous_msg.hide() # Prevent message stacking
+
+        display_message = Message(i18n_catalog.i18nc("@info:status", text),
             lifetime = msg_time,
-            title = "<font size='+1'>%s</font>" % msg_title,
+            title = i18n_catalog.i18nc("@info:title", "<font size='+1'>%s</font>" % msg_title),
             message_type = msg_type)
 
-        display_message.show() # Display message box
+        display_message.show()
+        self._previous_msg = display_message
 
 
-    # Dict order must be preserved!
-    __gcode_type_to_setting_key = {
-        "_FACTORS": "klipper_pressure_advance_factor", # [0-3] Non-feature parent settings
+    def getPresetDefinition(self, new_preset: str, override: bool=False) -> Any:
+        """Settings and values for tuning tower presets.
+
+          new_preset: String of preset name or '_all' for all preset setting keys.
+          override: True includes all settings enabled by 'Apply Suggested Settings'.
+        Returns: Dict[str, Any] if preset defined or Set[str] if "_all".
+        """
+        presets = {
+            "pressure": {
+                "klipper_tuning_tower_command": "SET_PRESSURE_ADVANCE",
+                "klipper_tuning_tower_parameter": "FACTOR",
+                "klipper_tuning_tower_method": "factor",
+                "klipper_tuning_tower_start": 0,
+                "klipper_tuning_tower_skip": 0,
+                "klipper_tuning_tower_factor": 0,
+                "klipper_tuning_tower_band": 0,
+                "klipper_velocity_limits_enable": True,
+                "klipper_velocity_limit": 0,
+                "klipper_accel_limit": 500,
+                "klipper_accel_to_decel_limit": 0,
+                "klipper_corner_velocity_limit": 1.0,
+                "klipper_pressure_advance_enable": True,
+                "klipper_pressure_advance_factor": 0
+            },
+            "accel": {
+                "klipper_tuning_tower_command": "SET_VELOCITY_LIMIT",
+                "klipper_tuning_tower_parameter": "ACCEL",
+                "klipper_tuning_tower_method": "step",
+                "klipper_tuning_tower_start": 1500,
+                "klipper_tuning_tower_skip": 0,
+                "klipper_tuning_tower_step_delta": 500,
+                "klipper_tuning_tower_step_height": 5,
+                "klipper_velocity_limits_enable": True,
+                "klipper_velocity_limit": 0,
+                "klipper_accel_limit": 0,
+                "klipper_accel_to_decel_limit": 7000,
+                "klipper_corner_velocity_limit": 1.0,
+                "klipper_pressure_advance_enable": True,
+                "klipper_pressure_advance_factor": 0,
+                "klipper_input_shaper_enable": True,
+                "klipper_shaper_freq_x": 0,
+                "klipper_shaper_freq_y": 0
+            }
+            ## Next Preset:
+        }
+
+        preset_dict = set() # To remove duplicate settings with '_all'
+
+        for preset in presets:
+
+            if preset == new_preset:
+                preset_dict = dict(presets[preset]) # type: Dict[str, Any]
+
+                if not override: # Set only tuning tower settings
+                    preset_dict = {k: v for k, v in preset_dict.items() if k.startswith("klipper_tuning")}
+
+                break
+
+            if new_preset == "_all":
+                preset_dict.update(dict(presets[preset])) # type: Set[str]
+
+        return preset_dict
+
+
+    ## Dict Keys for Klipper Command Settings
+    # Dict order must be preserved
+    __pressure_advance_setting_key = {
+        "_FACTORS": "klipper_pressure_advance_factor", ## [0-3] Non-feature parent settings
         "_WALLS": "klipper_pressure_advance_factor_wall",
         "_SUPPORTS": "klipper_pressure_advance_factor_support",
         "LAYER_0": "klipper_pressure_advance_factor_layer_0",
-        "WALL-OUTER": "klipper_pressure_advance_factor_wall_0", # [4-7] Gcode mesh features
+        "WALL-OUTER": "klipper_pressure_advance_factor_wall_0", ## [4-7] Gcode mesh features
         "WALL-INNER": "klipper_pressure_advance_factor_wall_x",
         "SKIN": "klipper_pressure_advance_factor_topbottom",
         "FILL": "klipper_pressure_advance_factor_infill",
-        "SUPPORT": "klipper_pressure_advance_factor_support_infill", # [8-11] Gcode non-mesh features
+        "SUPPORT": "klipper_pressure_advance_factor_support_infill", ## [8-11] Gcode non-mesh features
         "SUPPORT-INTERFACE": "klipper_pressure_advance_factor_support_interface",
         "PRIME-TOWER": "klipper_pressure_advance_factor_prime_tower",
         "SKIRT": "klipper_pressure_advance_factor_skirt_brim"
+    }
+    __velocity_limit_setting_key = {
+        "velocity": "klipper_velocity_limit",
+        "accel": "klipper_accel_limit",
+        "accel_to_decel": "klipper_accel_to_decel_limit",
+        "square_corner_velocity": "klipper_corner_velocity_limit"
+    }
+    __firmware_retraction_setting_key = {
+        "retract_length": "klipper_retract_distance",
+        "unretract_extra_length": "klipper_unretract_extra",
+        "retract_speed": "klipper_retract_speed",
+        "unretract_speed": "klipper_unretract_speed"
+    }
+    __input_shaper_setting_key = {
+        "shaper_freq_x": "klipper_shaper_freq_x",
+        "shaper_freq_y": "klipper_shaper_freq_y",
+        "shaper_type_x": "klipper_shaper_type_x",
+        "shaper_type_y": "klipper_shaper_type_y",
+        "damping_ratio_x": "klipper_damping_ratio_x",
+        "damping_ratio_y": "klipper_damping_ratio_y"
     }
     __tuning_tower_setting_key = {
         "tuning_method": "klipper_tuning_tower_method",
@@ -497,10 +947,3 @@ class KlipperSettingsPlugin(Extension):
         "step_delta": "klipper_tuning_tower_step_delta",
         "step_height": "klipper_tuning_tower_step_height"
     }
-    __velocity_limit_setting_key = {
-        "velocity": "klipper_velocity_limit",
-        "accel": "klipper_accel_limit",
-        "accel_to_decel": "klipper_accel_to_decel_limit",
-        "square_corner_velocity": "klipper_corner_velocity_limit"
-    }
-
