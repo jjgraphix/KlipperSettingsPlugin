@@ -1,4 +1,4 @@
-# KlipperSettingsPlugin v0.9.0 - Beta
+# KlipperSettingsPlugin v0.9.1 - Beta
 # Copyright (c) 2022 J.Jarrard / JJFX
 # The KlipperSettingsPlugin is released under the terms of the AGPLv3 or higher.
 #
@@ -26,18 +26,22 @@
 #         | Tuning Tower Suggested Settings feature
 #         | Tuning Tower Preset: Pressure Advance
 #         | Tuning Tower Preset: Ringing Tower
+# v0.9.1  | Fixed crashing with older Cura versions
+#         | Custom icon now only enabled for Cura 5.0+
+#         | Improved preset and backup behavior
 
 
 import os.path, json
-from collections import OrderedDict # Ensure order of imported settings in all versions
+import configparser # To parse settings backup in config file
+from collections import OrderedDict # Ensure order of settings in all Cura versions
 from typing import List, Optional, Any, Dict, Set, TYPE_CHECKING
 
 from cura.CuraApplication import CuraApplication
 
 try:
-    from PyQt6.QtCore import QUrl, QObject, pyqtProperty, pyqtSignal
+    from PyQt6.QtCore import QUrl
 except ImportError: # Older cura versions
-    from PyQt5.QtCore import QUrl, QObject, pyqtProperty, pyqtSignal
+    from PyQt5.QtCore import QUrl
 
 from UM.Qt.Bindings.Theme import Theme # Update theme with path to custom icon
 
@@ -64,9 +68,10 @@ class KlipperSettingsPlugin(Extension):
         super().__init__()
 
         self._application = CuraApplication.getInstance()
+        self._cura_version = Version(self._application.getVersion())
 
         self._i18n_catalog = None  # type: Optional[i18nCatalog]
-        
+
         self._settings_dict = {}   # type: Dict[str, Any]
 
         resource_path = os.path.join(os.path.dirname(__file__), "resources")
@@ -184,29 +189,6 @@ class KlipperSettingsPlugin(Extension):
 
             preferences.setValue(preference, visible_settings) # Category added to visible settings
 
-    def updateCategoryIcon(self, icon_path: str, icon_name: str) -> str:
-        """Updates theme with local path to custom category icon
-
-        If icon file doesn't exist, default_icon will be returned
-          icon_path: String for icon file location
-          icon_name: String for name of icon file without extension
-        Returns: String for icon to set
-        """
-        theme = Theme.getInstance()
-        icon_path = os.path.join(icon_path, "icons", "%s.svg" % icon_name)
-        default_icon = "Quick" # Random existing Cura icon
-
-        if not os.path.exists(icon_path):
-            category_icon = default_icon
-            Logger.log('d', "Custom icon file could not be found.")
-        else:
-            category_icon = icon_name
-            # Add new icon path to current theme (thanks batman)
-            if icon_name not in theme._icons['default']:
-                theme._icons['default'][icon_name] = QUrl.fromLocalFile(icon_path)
-
-        return category_icon
-
     def _fixValueErrorBug(self) -> None:
         """Forces error check for tuning tower setting values.
 
@@ -216,6 +198,35 @@ class KlipperSettingsPlugin(Extension):
 
         for key, setting in self.__tuning_tower_setting_key.items():
             machine_manager.startErrorCheckPropertyChanged(setting, "value")
+
+    def updateCategoryIcon(self, icon_path: str, icon_name: str) -> str:
+        """Updates theme with local path to custom category icon
+
+        Only working for Cura 5.0+.
+        If new icon can't be used a default existing icon is returned.
+          icon_path: String for local dir that contains an 'icons' directory
+          icon_name: String for name of icon file without extension
+        Returns: String for icon to set
+        """
+        legacy_version = self._cura_version < Version("5.0.0")
+        icon_path = os.path.join(icon_path, "icons", "%s.svg" % icon_name)
+
+        category_icon = "plugin" # Default Cura icon if new icon fails to load
+
+        if not os.path.exists(icon_path):
+            Logger.log('d', "Custom icon file could not be found.")
+        elif legacy_version:
+            Logger.log('d', "Custom icon not compatible with Cura version %s", self._cura_version)
+        else:
+            current_theme = Theme.getInstance()
+            category_icon = icon_name
+
+            # Add new icon path to current theme (thanks batman)
+            if icon_name not in current_theme._icons['default']:
+                current_theme._icons['default'][icon_name] = QUrl.fromLocalFile(icon_path)
+
+        return category_icon
+
 
     def _filterGcode(self, output_device: "OutputDevice") -> None:
         """Inserts enabled Klipper settings into final gcode.
@@ -229,8 +240,7 @@ class KlipperSettingsPlugin(Extension):
             return
 
         # Disable per-object settings for older Cura versions
-        version = Version(self._application.getVersion())
-        support_per_object_settings = version >= Version("4.7.0")
+        support_per_object_settings = self._cura_version >= Version("4.7.0")
 
         # Retrieve state of klipper setting controls (bool)
         firmware_retraction_enabled = global_stack.getProperty('machine_firmware_retract', 'value')
@@ -382,7 +392,7 @@ class KlipperSettingsPlugin(Extension):
 
             for node in nodes:
                 if not support_per_object_settings:
-                    Logger.log('d', "Per-object settings disabled for Cura version %s", version)
+                    Logger.log('d', "Per-object settings disabled for Cura version %s", self._cura_version)
                     break # Use extruder values for older Cura versions
 
                 mesh_name = node.getName() # Filename of mesh with extension
@@ -457,6 +467,7 @@ class KlipperSettingsPlugin(Extension):
 
                                     lines.insert(line_nr, gcode_cmd_pattern % (
                                         current_advance_factors[extruder_nr], str(extruder_nr).strip('0')))
+
                                     lines_changed = True # Corrected command inserted into gcode
 
                                 feature_type_error = new_layer = False
@@ -485,6 +496,7 @@ class KlipperSettingsPlugin(Extension):
 
                                 lines.insert(line_nr + 1, gcode_cmd_pattern % (
                                     pressure_advance_factor, str(extruder_nr).strip('0')))
+
                                 lines_changed = True # Command inserted into gcode
 
                     if lines_changed:
@@ -604,14 +616,19 @@ class KlipperSettingsPlugin(Extension):
         # TODO: Signal that only emits when settings are changed (remove ignore)
         #     : Consider forcing visibility of override settings??
         global_stack = self._application.getGlobalContainerStack()
+
+        if not global_stack:
+            return
+
         tuning_tower_enabled = global_stack.getProperty('klipper_tuning_tower_enable', 'value')
 
         if not tuning_tower_enabled:
-            self._restoreUserSettings() # Reset override if tuner tower disabled
+            # Reset override and hide messages if tuner tower disabled
+            self._restoreUserSettings()
             self._current_preset = None
 
             if self._previous_msg:
-                self._previous_msg.hide() # Hide enabled warning
+                self._previous_msg.hide()
 
             return
 
@@ -619,7 +636,7 @@ class KlipperSettingsPlugin(Extension):
             self._fixValueErrorBug() # Ensure user can't slice with value errors
             self.showMessage(
               "Tuning tower settings will affect <b>all objects</b> on the build plate.",
-              "WARNING", "Klipper Tuning Tower Enabled", 60) # Cura start warning
+              "WARNING", "Klipper Tuning Tower Enabled", 60) # Start warning
 
 
         new_preset = global_stack.getProperty('klipper_tuning_tower_preset', 'value')
@@ -656,14 +673,13 @@ class KlipperSettingsPlugin(Extension):
             ## User preset action messages
             if new_preset == "pressure":
                 self.showMessage(
-                  "Pressure Advance Calibration<br /><br /><i>Tuning Tower Factor:</i><br /><b>Direct Drive: .005<br />Bowden: .020</b><br /><br /><i>Print settings:</i><br /><b>High Print Speed: ~100+ mm/s<br />Course Layer Height: ~75% nozzle size</b>",
+                  "Pressure Advance Calibration<br /><br /><i>Tuning Tower Factor:</i><br /><b>Direct Drive: .005<br />Bowden: .020</b><br /><br /><i>Print settings:</i><br /><b>High Print Speed: ~100+ mm/s<br />Coarse Layer Height: ~75% nozzle size</b>",
                   "NEUTRAL", "Suggested Tuning Tower Settings", 60)
             ## Next preset message...
 
             # Hide last neutral message when preset changed
             elif self._previous_msg:
-                if self._previous_msg.getMessageType() == 1:
-                    self._previous_msg.hide()
+                self.hideMessageType(self._previous_msg, msg_type = 1)
 
 
         self._current_preset = new_preset
@@ -674,37 +690,41 @@ class KlipperSettingsPlugin(Extension):
         if not preset_settings:
             return
 
-
         self._override_on = override
 
+
         show_changes = ""
+
         for setting, value in preset_settings.items():
-            # Ensure pressure advance subsettings are cleared
             if setting == "klipper_pressure_advance_factor":
+                # Ensure all subsettings are cleared
                 for subsetting in self.__pressure_advance_setting_key.values():
                     self.settingWizard(subsetting, 0, "Save&Clear")
 
             if setting.startswith("klipper_tuning"):
-                self.settingWizard(setting, value, "Set")
+                self.settingWizard(setting, value, "Set") # No backup
 
             else: # Override enabled
                 self.settingWizard(setting, value, "Save&Set")
 
                 if setting in self._user_settings:
-                    # Get name and value of changed user settings
+                    # List names and values of changed settings
                     setting_label = global_stack.getProperty(setting, 'label')
+                    if not setting.startswith("klipper"):
+                        setting_label = "<b>(Cura)</b> %s" % setting_label # Non-Klipper settings
+
                     show_changes += "%s = %s<br />" % (setting_label, value)
                     Logger.log('d', "User setting changed: %s = %s", setting, value)
 
         if show_changes:
             self.showMessage(
               "<b>Settings Changed:</b><br /><br />%s<br /><i>* Disable suggested settings to revert changes</i>" % show_changes,
-              "WARNING", "Tuning Tower Setting Override", 30)
+              "WARNING", "Tuning Tower Setting Override", 60)
 
 
     def settingWizard(self, setting_key: str, new_value: Any=None, action: str="Save") -> None:
         """Backup, remove or set Cura setting values.
-        
+
           setting_key: String of an existing Cura setting.
           new_value: New value for setting_key, or comparison value for Save.
           action: String specifying the operation to perform.
@@ -718,8 +738,11 @@ class KlipperSettingsPlugin(Extension):
 
         global_stack = self._application.getGlobalContainerStack()
         used_extruder_stacks = self._application.getExtruderManager().getUsedExtruderStacks()
-        preferences = self._application.getPreferences()
 
+        if not global_stack or not used_extruder_stacks:
+            return
+
+        preferences = self._application.getPreferences()
         extruder_setting = global_stack.getProperty(setting_key,'settable_per_extruder')
 
         for stack in (used_extruder_stacks if extruder_setting else [global_stack]):
@@ -748,6 +771,7 @@ class KlipperSettingsPlugin(Extension):
 
                 if backup_exists:
                     preferences.removePreference("klipper_settings/%s" % setting_key)
+
                 # Ensure setting instance is cleared if value same as default value.
                 if new_value == stack.getProperty(setting_key, 'default_value'):
                     stack.getTop().removeInstance(setting_key)
@@ -767,24 +791,21 @@ class KlipperSettingsPlugin(Extension):
     def _getBackup(self) -> Dict[str, Any]:
         """Dict of any backup settings saved to config file.
 
-        Should only be necessary if cura crashes force closed.
+        Uses existing configparser data to get preferences under klipper_settings section.
+        Backup only necessary if Cura crashes or force closed with override enabled.
         """
-        preferences = self._application.getPreferences()
+        ## Restricted access is best access.
+        config_parser = self._application.getPreferences()._parser
+
         settings_backup = {} # type: Dict[str, Any]
-        # List of settings potentially saved in config file.
-        check_list = self.getPresetDefinition('_all')
 
-        for key in check_list:
-            setting = preferences._findPreference("klipper_settings/%s" % key) # Verify setting exists
-
-            if setting:
-                # Retrieve backup from config file
-                settings_backup[key] = preferences.getValue("klipper_settings/%s" % key)
-                # Remove backup from config file
-                preferences.removePreference("klipper_settings/%s" % key)
+        try:
+            settings_backup.update(config_parser.items("klipper_settings"))
+        except configparser.NoSectionError:
+            Logger.log('e', "Could not find klipper_settings in config file.")
 
         if settings_backup:
-            Logger.log('d', "Setting backup retrieved from config file.")
+            Logger.log('d', "Backup settings retrieved from config file.")
 
         return settings_backup
 
@@ -802,22 +823,24 @@ class KlipperSettingsPlugin(Extension):
                 self.settingWizard(setting, value, "Restore")
 
             self._user_settings.clear() # Clear backup
+            Logger.log('d', "User settings have been restored.")
 
-            if not self._user_settings:
-                Logger.log('d', "User settings have been restored.")
-                if announce and self._override_on:
-                    self.showMessage(
-                      "Suggested tuning tower settings restored to original values.",
-                      "POSITIVE", "Suggested Settings Disabled", 5)
+            if announce and self._override_on:
+                self.showMessage(
+                  "Suggested tuning tower settings restored to original values.",
+                  "POSITIVE", "Suggested Settings Disabled", 5)
 
-    def showMessage(self, text: str, msg_type = 1, msg_title: str="Klipper Settings", msg_time: int = 15) -> None:
+    def showMessage(self, text: str, msg_type = 1, msg_title: str = "Klipper Settings", msg_time: int = 15, hide_msg = None) -> None:
         """Helper function to display messages to user.
 
+        Message types only compatible with Cura version 4.10+
           text: String to set message status.
           msg_type: String to set icon type ([0-3] or POSITIVE, NEUTRAL, WARNING, ERROR).
           msg_title: String to set message title.
           msg_time: Integer in seconds until message disappears.
         """
+        legacy_version = self._cura_version <= Version("4.10.0")
+
         if not isinstance(msg_type, int):
             msg_type = (
                 0 if msg_type == "POSITIVE" else
@@ -827,83 +850,99 @@ class KlipperSettingsPlugin(Extension):
         if self._previous_msg:
             self._previous_msg.hide() # Prevent message stacking
 
-        display_message = Message(i18n_catalog.i18nc("@info:status", text),
-            lifetime = msg_time,
-            title = i18n_catalog.i18nc("@info:title", "<font size='+1'>%s</font>" % msg_title),
-            message_type = msg_type)
+        if legacy_version:
+            display_message = Message(i18n_catalog.i18nc("@info:status", text),
+                lifetime = msg_time,
+                title = i18n_catalog.i18nc("@info:title", "<font size='+1'>%s</font>" % msg_title))
+        else:
+            display_message = Message(i18n_catalog.i18nc("@info:status", text),
+                lifetime = msg_time,
+                title = i18n_catalog.i18nc("@info:title", "<font size='+1'>%s</font>" % msg_title),
+                message_type = msg_type)
 
         display_message.show()
         self._previous_msg = display_message
 
+    def hideMessageType(self, message: Message = None, msg_type = 1) -> None:
+        """Hides previous messages by type.
 
-    def getPresetDefinition(self, new_preset: str, override: bool=False) -> Any:
-        """Settings and values for tuning tower presets.
-
-          new_preset: String of preset name or '_all' for all preset setting keys.
-          override: True includes all settings enabled by 'Apply Suggested Settings'.
-        Returns: Dict[str, Any] if preset defined or Set[str] if "_all".
+        All message types are hidden if Cura version < 4.10
         """
-        presets = {
-            "pressure": {
-                "klipper_tuning_tower_command": "SET_PRESSURE_ADVANCE",
-                "klipper_tuning_tower_parameter": "FACTOR",
-                "klipper_tuning_tower_method": "factor",
-                "klipper_tuning_tower_start": 0,
-                "klipper_tuning_tower_skip": 0,
-                "klipper_tuning_tower_factor": 0,
-                "klipper_tuning_tower_band": 0,
-                "klipper_velocity_limits_enable": True,
-                "klipper_velocity_limit": 0,
-                "klipper_accel_limit": 500,
-                "klipper_accel_to_decel_limit": 0,
-                "klipper_corner_velocity_limit": 1.0,
-                "klipper_pressure_advance_enable": True,
-                "klipper_pressure_advance_factor": 0
-            },
-            "accel": {
-                "klipper_tuning_tower_command": "SET_VELOCITY_LIMIT",
-                "klipper_tuning_tower_parameter": "ACCEL",
-                "klipper_tuning_tower_method": "step",
-                "klipper_tuning_tower_start": 1500,
-                "klipper_tuning_tower_skip": 0,
-                "klipper_tuning_tower_step_delta": 500,
-                "klipper_tuning_tower_step_height": 5,
-                "klipper_velocity_limits_enable": True,
-                "klipper_velocity_limit": 0,
-                "klipper_accel_limit": 0,
-                "klipper_accel_to_decel_limit": 7000,
-                "klipper_corner_velocity_limit": 1.0,
-                "klipper_pressure_advance_enable": True,
-                "klipper_pressure_advance_factor": 0,
-                "klipper_input_shaper_enable": True,
-                "klipper_shaper_freq_x": 0,
-                "klipper_shaper_freq_y": 0
-            }
-            ## Next Preset:
-        }
+        legacy_version = self._cura_version <= Version("4.10.0")
 
-        preset_dict = set() # To remove duplicate settings with '_all'
+        if message:
+            if not legacy_version:
+                if message.getMessageType() == msg_type:
+                    message.hide()
+            else:
+                message.hide()
+
+
+    def getPresetDefinition(self, new_preset: str, override: bool=False) -> Dict[str, Any]:
+        """Dict of pre-defined setting values for tuning tower presets.
+
+          new_preset: String for preset name
+          override: True includes all settings enabled by 'Apply Suggested Settings'.
+        """
+        # Tuple lists aren't pretty but guarentee OrderedDict in older Cura versions
+        presets = [(
+            "pressure", [
+                ("klipper_tuning_tower_command", "SET_PRESSURE_ADVANCE"),
+                ("klipper_tuning_tower_parameter", "FACTOR"),
+                ("klipper_tuning_tower_method", "factor"),
+                ("klipper_tuning_tower_start", 0),
+                ("klipper_tuning_tower_skip", 0),
+                ("klipper_tuning_tower_factor", 0),
+                ("klipper_tuning_tower_band", 0),
+                ("klipper_velocity_limits_enable", True),
+                ("klipper_velocity_limit", 0),
+                ("klipper_accel_limit", 500),
+                ("klipper_accel_to_decel_limit", 0),
+                ("klipper_corner_velocity_limit", 1.0),
+                ("klipper_pressure_advance_enable", True),
+                ("klipper_pressure_advance_factor", 0),
+                ("acceleration_enabled", False)
+            ]),(
+            "accel", [
+                ("klipper_tuning_tower_command", "SET_VELOCITY_LIMIT"),
+                ("klipper_tuning_tower_parameter", "ACCEL"),
+                ("klipper_tuning_tower_method", "step"),
+                ("klipper_tuning_tower_start", 1500),
+                ("klipper_tuning_tower_skip", 0),
+                ("klipper_tuning_tower_step_delta", 500),
+                ("klipper_tuning_tower_step_height", 5),
+                ("klipper_velocity_limits_enable", True),
+                ("klipper_velocity_limit", 0),
+                ("klipper_accel_limit", 0),
+                ("klipper_accel_to_decel_limit", 7000),
+                ("klipper_corner_velocity_limit", 1.0),
+                ("klipper_pressure_advance_enable", True),
+                ("klipper_pressure_advance_factor", 0),
+                ("klipper_input_shaper_enable", True),
+                ("klipper_shaper_freq_x", 0),
+                ("klipper_shaper_freq_y", 0),
+                ("acceleration_enabled", False)
+            ])
+            ## Next Preset:
+        ]
+
+        presets = OrderedDict(presets) # Convert and preserve setting order
+        preset_dict = OrderedDict() # type: OrderedDict[str, Any]
 
         for preset in presets:
 
             if preset == new_preset:
-                preset_dict = dict(presets[preset]) # type: Dict[str, Any]
+                preset_dict.update(presets[preset]) 
 
                 if not override: # Set only tuning tower settings
                     preset_dict = {k: v for k, v in preset_dict.items() if k.startswith("klipper_tuning")}
 
-                break
-
-            if new_preset == "_all":
-                preset_dict.update(dict(presets[preset])) # type: Set[str]
-
         return preset_dict
 
 
-    ## Dict Keys for Klipper Command Settings
     # Dict order must be preserved
     __pressure_advance_setting_key = {
-        "_FACTORS": "klipper_pressure_advance_factor", ## [0-3] Non-feature parent settings
+        "_FACTORS": "klipper_pressure_advance_factor", ## [0-3] Parent settings
         "_WALLS": "klipper_pressure_advance_factor_wall",
         "_SUPPORTS": "klipper_pressure_advance_factor_support",
         "LAYER_0": "klipper_pressure_advance_factor_layer_0",
