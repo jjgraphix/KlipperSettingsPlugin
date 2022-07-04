@@ -11,7 +11,7 @@
     },
     "klipper_tuning_tower_preset": {
         "label": "Tuning Tower Presets",
-        "description": "Setting presets for common Tuning Tower calibrations. Only Tuning Tower settings will be affected by a preset unless the <em>Apply Suggested Settings</em> option is also enabled. This option is only available for specific presets and will apply additional Klipper settings neccessary for the calibration.<br /><br /> <b>Presets are recommended to be used with the calibration model specified in the Klipper documentation.</b>",
+        "description": "Setting presets for common Tuning Tower calibrations. Only Tuning Tower settings will be affected by a preset unless the <em>Apply Suggested Settings</em> option is also enabled. This option is only available for specific presets and will adjust additional Klipper and Cura settings neccessary for the calibration.<br /><br /> <b>Recommended to be used with Klipper's calibration models.</b>",
         "type": "enum",
         "options": {
             "custom": "Custom",
@@ -25,7 +25,7 @@
         "children": {
             "klipper_tuning_tower_override": {
                 "label": "Apply Suggested Settings",
-                "description": "Applies additional Klipper settings necessary for the current calibration sequence. When enabled, a number of additional <em>Klipper category</em> settings defined by the preset will be adjusted. Otherwise presets only affect <em>Tuning Tower</em> setting values. All changes are generally as described in the Klipper documentation.<br /><br /> <em>Changes to user-defined values will be preserved and temporarily shown on screen.</em><br /><br /> <b>Disable to immediately restore changed settings to their previous state.</b>",
+                "description": "Applies additional Klipper settings necessary for the current calibration sequence. When enabled, a number of additional <em>Klipper and Cura</em> settings defined by the preset will be adjusted. Otherwise presets only affect <em>Tuning Tower</em> setting values. All changes are generally as described in the Klipper documentation.<br /><br /> <em>Any changes to user-defined values are backed up and shown on screen.</em><br /><br /> <b>Disable to restore changed settings to their previous state.</b>",
                 "type": "bool",
                 "default_value": false,
                 "enabled": "resolveOrValue('klipper_tuning_tower_enable') and klipper_tuning_tower_preset in ['pressure', 'accel']",
@@ -37,7 +37,7 @@
     },
     "klipper_tuning_tower_command": {
         "label": "Tuning Tower Command",
-        "description": "The Klipper command to be executed during the tuning process. This value must be specified.<br /><br /> <em>Common Examples:</em><br /><br /> SET_PRESSURE_ADVANCE<br /> SET_VELOCITY_LIMIT<br /> SET_RETRACTION<br /><br /> <em>Quotes will be automatically added if command needs multiple words:</em><br /> 'SET_HEATER_TEMPERATURE HEATER=extruder'",
+        "description": "The Klipper command to be executed during the tuning process. This value must be specified.<br /><br /> <em>Common Examples:</em><br /> SET_PRESSURE_ADVANCE<br /> SET_VELOCITY_LIMIT<br /> SET_RETRACTION<br /><br /> <em>Quotes automatically added to multi-word commands:</em><br /> 'SET_HEATER_TEMPERATURE HEATER=extruder'",
         "type": "str",
         "default_value": "",
         "allow_empty": false,
@@ -48,7 +48,7 @@
     },
     "klipper_tuning_tower_parameter": {
         "label": "Tuning Tower Parameter",
-        "description": "The parameter of the <em>command</em> to execute during the tuning process. This value must be specified.<br /><br /> <b> Text should not contain spaces or special characters.</b><br /><br /> <em>Common Examples:</em><br /><br /> FACTOR<br /> ACCEL<br /> RETRACT_LENGTH<br /> TARGET",
+        "description": "The parameter of the <em>command</em> to execute during the tuning process. This value must be specified.<br /><br /> <b> Text should not contain spaces or special characters.</b><br /><br /> <em>Common Examples:</em><br /> FACTOR<br /> ACCEL<br /> RETRACT_LENGTH<br /> TARGET",
         "type": "str",
         "default_value": "",
         "allow_empty": false,
@@ -59,7 +59,7 @@
     },
     "klipper_tuning_tower_start": {
         "label": "Tuning Tower Start Value",
-        "description": "The starting value of the <em>parameter</em> specified for the tuning process.<br /><br /> <b>A value of '0' will effectively start with the <em>command</em> disabled.</b>",
+        "description": "The starting value of the <em>parameter</em> specified for the tuning process.<br /><br /> <b>A value of '0' will effectively start with <em>command</em> disabled.</b>",
         "type": "float",
         "default_value": 0,
         "minimum_value": "0",
@@ -70,7 +70,7 @@
         "children": {
             "klipper_tuning_tower_skip": {
                 "label": "Tuning Tower Skip Height",
-                "description": "<b>(Optional)</b> The z-height in mm at which the tuning process will begin. Below this height only the <em>start value</em> will be used. If omitted, the tuning process simply begins at the first layer. This is often used to skip the initial layers of the print so they do not influence the results.<br /><br /> <b>A value of '0' disables the <em>skip height</em> option.</b>",
+                "description": "<b>(Optional)</b> The z-height in mm at which the tuning process will begin. Below this height only the <em>start value</em> will be used. If omitted, the tuning process simply begins at the first layer. This is often used to skip the initial layers of the print.<br /><br /> <b>A value of '0' disables the <em>skip height</em> option.</b>",
                 "type": "float",
                 "unit": "mm",
                 "default_value": 0,
@@ -84,7 +84,7 @@
     },
     "klipper_tuning_tower_method": {
         "label": "Tuning Tower Method",
-        "description": "The adjustment method used for the tuning process.<br /><br /> Use <b>FACTOR</b> when precisely measuring the z-height of the tuning tower to determine the optimum value. Generally used to tune a wide range of values for features like <em>pressure advance</em>. This also enables an optional <em>band height</em> setting to specify an incremental height at which each adjustment can be made.<br /><br /> Use <b>STEP</b> if the tower model has steps of discrete values which can be counted to determine the optimum value. Typically best suited for objects like <em>temperature towers</em>. This will enable the required settings <em>step delta</em> and <em>step height</em>.",
+        "description": "The adjustment method used for the tuning process.<br /><br /> Use <b>FACTOR</b> when precisely measuring the z-height of the tuning tower to determine the optimum value. Generally used to tune a wide range of values for features like <em>pressure advance</em>. This enables the optional <em>band height</em> setting to specify an incremental height adjustment.<br /><br /> Use <b>STEP</b> if the tower model has steps of discrete values which can be counted to determine the optimum value. Typically best suited for objects like <em>temperature towers</em>. This enables the required settings <em>step delta</em> and <em>step height</em>.",
         "type": "enum",
         "options": {
             "factor": "Factor",
@@ -97,7 +97,7 @@
         "children": {
             "klipper_tuning_tower_factor": {
                 "label": "Tuning Tower Factor",
-                "description": "The factor used to continously adjust the <em>start value</em> throughout the tuning process. The value will change at a rate of <em>factor</em> per mm. This may be used in combination with <em>band height</em> when necessary.<br /><br /> <b>A value greater than '0' is required.</b><br /><br /> <em>To determine the result, precisely measure the desired z-height of the tower then use this formula:</em><br /> <b>START + FACTOR * Z_HEIGHT</b>",
+                "description": "The factor used to continously adjust the <em>start value</em> throughout the tuning process. The value will change at a rate of <em>factor per mm</em>. This may be used in combination with <em>band height</em>.<br /><br /> <b>A value greater than '0' is required.</b><br /><br /> <em>To determine the best result, precisely measure the desired Z height then use the following formula:</em><br /> <b>START + FACTOR * Z_HEIGHT</b>",
                 "type": "float",
                 "default_value": 0,
                 "minimum_value": "0.001",
@@ -107,7 +107,7 @@
             },
             "klipper_tuning_tower_band": {
                 "label": "Tuning Tower Band Height",
-                "description": "<b>(Optional)</b> The height in mm of each adjustment band. The value is adjusted at an average rate of <em>factor</em> per mm, but only adjusted in discrete bands of Z height.<br /><br /> <b>A value of '0' disables the <em>band height</em> option.</b><br /><br /> <em>Formula if band enabled:</em><br /> <b>START + FACTOR * ((floor(Z_HEIGHT / BAND) + .5) * BAND)</b>",
+                "description": "<b>(Optional)</b> The height in mm of each adjustment band. The value is adjusted at an average rate of <em>factor</em> per mm, but only adjusted in discrete bands of Z height.<br /><br /> <b>A value of '0' disables the <em>band height</em> option.</b><br /><br /> <em>Formula with band enabled:</em><br /> <b>START + FACTOR * ((floor(Z_HEIGHT / BAND) + .5) * BAND)</b>",
                 "type": "float",
                 "unit": "mm",
                 "default_value": 0,
@@ -335,7 +335,7 @@
     },
     "machine_firmware_retract": {
         "label": "Enable Firmware Retraction",
-        "description": "Enables <b>G10 & G11</b> firmware retraction commands in gcode. This is a duplicate of the firmware retraction option normally hidden in machine settings. When enabled, Cura's standard retraction settings are ignored since it no longer controls retraction behavior directly. Any specified retraction values will override current values in Klipper config.<br /><br /> <b>This should only be used if <em>firmware_retraction</em> section is enabled in Klipper config.</b>",
+        "description": "Enables <b>G10 & G11</b> firmware retraction commands in gcode. This is a duplicate of the <em>firmware retraction</em> option normally hidden in machine settings. When enabled, Cura's standard retraction settings are ignored since it no longer has direct control over retraction behavior. Any specified retraction values will override current values in Klipper config.<br /><br /> <b>This can only be used if <em>firmware_retraction</em> is enabled in Klipper config.</b>",
         "type": "bool",
         "default_value": false,
         "settable_per_mesh": false,
@@ -344,7 +344,7 @@
     },
     "klipper_retract_distance": {
         "label": "Retraction Distance",
-        "description": "The length of material retracted during a <b>G10</b> retract command. Cura's standard retraction setting is ignored as it no longer controls retraction behavior directly. The <em>firmware_retraction</em> section must be enabled in Klipper config.<br /><br /> <b>Klipper Default: 0 mm</b><br /><br /> <b>A value of '-1.0' will disable control and use current <em>retract_length</em> in Klipper config.</b><br /><br /> <em>Default: -1.0 (Disabled)</em>",
+        "description": "The length in mm of material retracted during a <b>G10</b> retract command. Cura's standard retraction setting is ignored as it no longer controls retractions directly. The <em>firmware_retraction</em> section must be enabled in Klipper config.<br /><br /> <b>Klipper Default: 0 mm</b><br /><br /> <b>A value of '-1.0' will disable control and use current <em>retract_length</em> in Klipper config.</b><br /><br /> <em>Default: -1.0 (Disabled)</em>",
         "type": "float",
         "unit": "mm",
         "default_value": -1,
@@ -357,7 +357,7 @@
     },
     "klipper_unretract_extra": {
         "label": "Unretract Extra Length",
-        "description": "The ammount of <em>extra</em> material added to a <b>G11</b> unretract command. A value above zero is generally not necessary but can be used to compensate for material oozing during travel moves. Only adjust if under-extrusion is consistently visible following retraction. Increasing too much can quickly result in blobs and over-extrusion. Cura's standard retraction setting is ignored as it no longer controls retraction behavior directly. The <em>firmware_retraction</em> section must be enabled in Klipper config.<br /><br /> <b>Klipper Default: 0 mm</b><br /><br /> <b>A value of '-1.0' will disable control and use current <em>unretract_extra_length</em> in Klipper config.</b><br /><br /> <em>Default: -1.0 (Disabled)</em>",
+        "description": "The length in mm of <em>extra</em> material added to a <b>G11</b> unretract command. A value above zero is generally not necessary but can be used to compensate for material oozing during travel moves. Only adjust if under-extrusion is consistently visible following retraction. Cura's standard retraction setting is ignored as it no longer controls retractions directly. The <em>firmware_retraction</em> section must be enabled in Klipper config.<br /><br /> <b>Klipper Default: 0 mm</b><br /><br /> <b>A value of '-1.0' will disable control and use current <em>unretract_extra_length</em> in Klipper config.</b><br /><br /> <em>Default: -1.0 (Disabled)</em>",
         "type": "float",
         "unit": "mm",
         "default_value": -1,
@@ -369,7 +369,7 @@
     },
     "klipper_retraction_speed": {
         "label": "Retraction Speed",
-        "description": "The speed at which filament is retracted and primed during <b>G10 & G11</b> commands. Cura's standard retraction setting is ignored as it no longer controls retraction behavior directly. The <em>firmware_retraction</em> section must be enabled in Klipper config.<br /><br /> <b>Klipper Min. Value: 1.0</b><br /><br /> <b>A value of '0' will disable control and instead use current values in Klipper config.</b><br /><br /> <em>Default: 0 (Disabled)</em>",
+        "description": "The speed in mm/s at which filament is retracted and primed during <b>G10 & G11</b> commands. Cura's standard retraction setting is ignored as it no longer controls retractions directly. The <em>firmware_retraction</em> section must be enabled in Klipper config.<br /><br /> <b>Klipper Min. Value: 1.0</b><br /><br /> <b>A value of '0' will disable control and instead use current values in Klipper config.</b><br /><br /> <em>Default: 0 (Disabled)</em>",
         "type": "float",
         "unit": "mm/s",
         "default_value": 0,
@@ -382,7 +382,7 @@
         "children": {
             "klipper_retract_speed": {
                 "label": "Retract Speed",
-                "description": "The speed at which filament is retracted during a <b>G10</b> command. Cura's standard retraction setting is ignored as it no longer controls retraction behavior directly. The <em>firmware_retraction</em> section must be enabled in Klipper config.<br /><br /> <b>Klipper Min. Value: 1.0 | Default: 20 mm/s</b><br /><br /> <b>A value of '0' will disable control and use current <em>retract_speed</em> in Klipper config.</b><br /><br /> <em>Default: 0 (Disabled)</em>",
+                "description": "The speed at which filament is retracted during a <b>G10</b> command. Cura's standard retraction setting is ignored as it no longer controls retractions directly. The <em>firmware_retraction</em> section must be enabled in Klipper config.<br /><br /> <b>Klipper Min. Value: 1.0 | Default: 20 mm/s</b><br /><br /> <b>A value of '0' will disable control and use current <em>retract_speed</em> in Klipper config.</b><br /><br /> <em>Default: 0 (Disabled)</em>",
                 "type": "float",
                 "unit": "mm/s",
                 "default_value": 0,
@@ -396,7 +396,7 @@
             },
             "klipper_unretract_speed": {
                 "label": "Unretract Speed",
-                "description": "The speed at which filament unretracts during a <b>G11</b> command. Cura's standard retraction setting is ignored as it no longer controls retraction behavior directly. The <em>firmware_retraction</em> section must be enabled in Klipper config.<br /><br /> <b>Klipper Min. Value: 1.0 | Default: 10 mm/s</b><br /><br /> <b>A value of '0' will disable control and use current <em>unretract_speed</em> in Klipper config.</b><br /><br /> <em>Default: 0 (Disabled)</em>",
+                "description": "The speed at which filament unretracts during a <b>G11</b> command. Cura's standard retraction setting is ignored as it no longer controls retractions directly. The <em>firmware_retraction</em> section must be enabled in Klipper config.<br /><br /> <b>Klipper Min. Value: 1.0 | Default: 10 mm/s</b><br /><br /> <b>A value of '0' will disable control and use current <em>unretract_speed</em> in Klipper config.</b><br /><br /> <em>Default: 0 (Disabled)</em>",
                 "type": "float",
                 "unit": "mm/s",
                 "default_value": 0,
@@ -412,7 +412,7 @@
     },
     "klipper_velocity_limits_enable": {
         "label": "Enable Velocity Limit Control",
-        "description": "Enable control of Klipper's velocity and acceleration limits.<br /><br /> <b>It is not recommended to change these values unless you understand the ramifications of doing so.</b>",
+        "description": "Enable control of Klipper's velocity and acceleration limits.<br /><br /> <b>Not recommended to change unless you understand the ramifications of doing so.</b>",
         "type": "bool",
         "default_value": false,
         "resolve": "any(extruderValues('klipper_velocity_limits_enable'))",
@@ -421,7 +421,7 @@
         "children": {
             "klipper_velocity_limit": {
                 "label": "Velocity Limit",
-                "description": "The maximum velocity limit of the toolhead in mm/s relative to the print. Print speeds will not be able to exceed this value regardless what they are set to. It is generally not necessary to adjust a printer's default value.<br /><br /> <b>A value of '0' will disable control and not change the current limit.</b><br /><br /> <em>Default: 0 (Disabled)</em>",
+                "description": "The maximum velocity limit in mm/s of the toolhead relative to the print. Print speeds will not be able to exceed this value. It is generally not necessary to adjust a printer's default value.<br /><br /> <b>A value of '0' will disable control and not change current limit in Klipper config.</b><br /><br /> <em>Default: 0 (Disabled)</em>",
                 "type": "int",
                 "unit": "mm/s",
                 "default_value": 0,
@@ -434,7 +434,7 @@
             },
             "klipper_accel_limit": {
                 "label": "Acceleration Limit",
-                "description": "The maximum acceleration limit in mm/s² of the toolhead relative to the print. If Cura's acceleration control is enabled those values also change <em>max_accel</em> so they will override this value. Use this to simply adjust <em>max_accel</em> temporarily, such as in preparation for a tuning sequence.<br /><br /> <em>When tuning pressure advance it is suggested to decrease to at least 500 mm/s².</em><br /><br /> <b>A value of '0' will disable control and not change the current limit.</b><br /><br /> <em>Default: 0 (Disabled)</em>",
+                "description": "The maximum acceleration limit in mm/s² of the toolhead relative to the print. If Cura's acceleration control is enabled those values also change <em>max_accel</em> so they will override this value. This is intended to adjust <em>max_accel</em> temporarily, such as in preparation for a tuning sequence.<br /><br /> <br /><br /> <b>A value of '0' will disable control and not change current limit in Klipper config.</b><br /><br /> <em>Default: 0 (Disabled)</em>",
                 "type": "int",
                 "unit": "mm/s²",
                 "default_value": 0,
@@ -447,7 +447,7 @@
             },
             "klipper_accel_to_decel_limit": {
                 "label": "Accel to Decel Limit",
-                "description": "The maximum rate in mm/s² for how quickly the toolhead can switch from acceleration to deceleration. This is a pseudo acceleration used to reduce the top speed of short zig-zag moves which can cause excessive vibration. The default Klipper value is generally recommended which is calculated as <em>half</em> of the <em>max_accel</em> config value and does not dynamically change.<br /><br /> <em>When tuning resonance compensation it is suggested to increase to at least 7000 mm/s².</em><br /><br /> <b>A value of '0' will disable control and not change the current limit.</b><br /><br /> <em>Default: 0 (Disabled)</em>",
+                "description": "The maximum rate in mm/s² for how quickly the toolhead can switch from acceleration to deceleration. This is a pseudo acceleration used to reduce the top speed of short zig-zag moves which can cause excessive vibration. The default Klipper value is generally recommended which is calculated as <em>half</em> of the <em>max_accel</em> config value and does not dynamically change.<br /><br /> <br /><br /> <b>A value of '0' will disable control and not change current limit in Klipper config.</b><br /><br /> <em>Default: 0 (Disabled)</em>",
                 "type": "int",
                 "unit": "mm/s²",
                 "default_value": 0,
@@ -460,7 +460,7 @@
             },
             "klipper_corner_velocity_limit": {
                 "label": "Square Corner Velocity Limit",
-                "description": "The maximum velocity in mm/s of the toolhead during a 90 degree cornering move. A non-zero value can reduce changes in extruder flow rates by enabling instantaneous velocity changes during cornering. Corners with angles larger than 90 degrees will have a higher cornering velocity while corners with angles less than 90 degrees will have a lower cornering velocity. A value of '0' is <em>not recommended</em> but is allowed and would force the toolhead to decelerate to a stop at each corner.<br /><br /> <em>When tuning pressure advance it is suggested to decrease to 1 mm/s.</em> <b>Klipper default is 5.0 mm/s.</b><br /><br /> <b>A value of '-1.0' will disable control and not change the current limit.</b><br /><br /> <em>Default: -1.0 (Disabled)</em>",
+                "description": "The maximum velocity in mm/s of the toolhead during a 90 degree cornering move. A non-zero value can reduce changes in extruder flow rates when cornering by enabling instantaneous velocity changes. Corners with angles above 90 degrees will have a higher cornering velocity while corners with angles with less will have a lower cornering velocity.<br/><br/> A value of '0' is valid but <em>not recommended</em> and would force the toolhead to decelerate to a stop at each corner.<br/><br/> <b>Klipper default is 5.0 mm/s.</b><br /><br /> <b>A value of '-1.0' will disable control and not change current limit in Klipper config.</b><br /><br /> <em>Default: -1.0 (Disabled)</em>",
                 "type": "float",
                 "unit": "mm/s",
                 "default_value": -1,
@@ -475,7 +475,7 @@
     },
     "klipper_input_shaper_enable": {
         "label": "Enable Input Shaper Control",
-        "description": "Enable control of Klipper's input shaper commands. The <em>input_shaper</em> section must be enabled in Klipper config.<br /><br /> <b>It is only recommended to enable control for calibration purposes.</b>",
+        "description": "Enable control of Klipper's input shaper commands. The <em>input_shaper</em> section must be enabled in Klipper config.<br /><br /> <b>Only recommended to enable for calibration purposes.</b>",
         "type": "bool",
         "default_value": false,
         "resolve": "any(extruderValues('klipper_input_shaper_enable'))",
@@ -484,7 +484,7 @@
         "children": {
             "klipper_shaper_freq_x": {
                 "label": "Shaper Frequency X",
-                "description": "The frequency in Hz of the input shaper for X axis. This is usually a resonance frequency of the X axis which the input shaper should suppress.<br /><br /> The Klipper default of '0' will disable input shaping for X axis.<br /><br /> <b>A value of '-1' will disable control and use current <em>shaper_freq_x</em> in Klipper config.</b><br /><br /> <em>Default: -1 (Disabled)</em>",
+                "description": "The frequency in Hz for the X axis input shaper. Typically a resonance frequency of the X axis to suppress.<br /><br /> The Klipper default of '0' will disable input shaping for X axis.<br /><br /> <b>A value of '-1' will disable control and use current <em>shaper_freq_x</em> in Klipper config.</b><br /><br /> <em>Default: -1 (Disabled)</em>",
                 "type": "float",
                 "unit": "Hz",
                 "default_value": -1,
@@ -497,7 +497,7 @@
             },
             "klipper_shaper_freq_y": {
                 "label": "Shaper Frequency Y",
-                "description": "The frequency in Hz of the input shaper for Y axis. This is usually a resonance frequency of the Y axis which the input shaper should suppress.<br /><br /> The Klipper default of '0' will disable input shaping for Y axis.<br /><br /> <b>A value of '-1' will disable control and use current <em>shaper_freq_y</em> in Klipper config.</b><br /><br /> <em>Default: -1 (Disabled)</em>",
+                "description": "The frequency in Hz for the Y axis input shaper. Typically a resonance frequency of the Y axis to suppress.<br /><br /> The Klipper default of '0' will disable input shaping for Y axis.<br /><br /> <b>A value of '-1' will disable control and use current <em>shaper_freq_y</em> in Klipper config.</b><br /><br /> <em>Default: -1 (Disabled)</em>",
                 "type": "float",
                 "unit": "Hz",
                 "default_value": -1,
@@ -510,7 +510,7 @@
             },
             "klipper_shaper_type": {
                 "label": "Shaper Type",
-                "description": "The type of input shaper to use for both X and Y axes.<br /><br /> <em>Supported shapers:</em><br /> <b>ZV, MZV, ZVD, EI, 2HUMP_EI, 3HUMP_EI</b><br /><br /> <em>Klipper Default: MZV</em>",
+                "description": "The type of input shaper to use for both X and Y axes.<br /><br /> <em>Supported shapers:</em><br /> <b>ZV, MZV, ZVD, EI, 2HUMP_EI, 3HUMP_EI</b><br /><br /> <em>Klipper Default: MZV</em><br /><br /> <b>Not specifying type will disable control and use current <em>shaper_type</em> in Klipper config.</b>",
                 "type": "enum",
                 "options": {
                     "disabled": "",
@@ -528,7 +528,7 @@
                 "children": {
                     "klipper_shaper_type_x": {
                         "label": "Shaper Type X",
-                        "description": "The type of input shaper to use for only the X axis.<br /><br /> <em>Supported shapers:</em><br /> <b>ZV, MZV, ZVD, EI, 2HUMP_EI, 3HUMP_EI</b><br /><br /> <em>Klipper Default: MZV</em>",
+                        "description": "The type of input shaper to use for only the X axis.<br /><br /> <em>Klipper Default: MZV</em>",
                         "type": "enum",
                         "options": {
                             "disabled": "",
@@ -547,7 +547,7 @@
                     },
                     "klipper_shaper_type_y": {
                         "label": "Shaper Type Y",
-                        "description": "The type of input shaper to use for only the Y axis.<br /><br /> <em>Supported shapers:</em><br /> <b>ZV, MZV, ZVD, EI, 2HUMP_EI, 3HUMP_EI</b><br /><br /> <em>Klipper Default: MZV</em>",
+                        "description": "The input shaper type to use only for the Y axis.<br /><br /> <em>Klipper Default: MZV</em>",
                         "type": "enum",
                         "options": {
                             "disabled": "",
