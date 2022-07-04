@@ -18,7 +18,7 @@ Additional features are in the works but please feel free to propose suggestions
   </ul></p>
 </details>
 
-### Current Release Notes (v0.9.0 Beta)
+### Current Release Notes (v0.9.x Beta)
 - Adds Klipper category icon.
 - Firmware retraction settings.
 - Input shaper settings.
@@ -28,25 +28,33 @@ Additional features are in the works but please feel free to propose suggestions
 - Improved tooltip descriptions and setting behavior.
 - Various bug fixes and other improvements.
 
-_**Check setting visibility for new features after updating!**_
+<details><summary><strong>Bug Fix (v0.9.1 Beta)</strong></summary>
+  <p><ul type="disc">
+    <li>Fixed crashing in older Cura versions.</li>
+    <li>Custom icon now only enabled for Cura 5.0+</li>
+    <li>Improved presets and backup behavior</li>
+  </ul></p>
+</details>
+
+_Check setting visibility for new features after updating!_
 
 ### Compatibility
-Tested up to Cura 5.0 but current version has not yet been extensively tested in older Cura versions. Please let me know of any issues. Multiple extruders are generally supported but new tuning tower presets may not yet properly restore setting values for all extruders. _Per-object_ Pressure Advance setting support is currently disabled for Cura versions prior to 4.7.
+Tested stable up to Cura 5.0 and 4.8+ seems to work well but various quality of life features are disabled as versions get older. _Per-object_ Pressure Advance setting support is currently disabled for Cura versions prior to 4.7. Please report any significant version problems. Multiple extruders are generally supported but new tuning tower presets may not yet properly restore settings for all extruders. 
 
 ### How to Use
 
-Once installed, the Klipper Settings category will initially be hidden but should show up at the bottom of the setting visibility preferences. If they don't appear, try selecting the "All" settings preset. Enable visibility of every settings to ensure it's working then hide whatever you don't plan to use. I suggest leaving visibility enabled for checkbox settings like the _Apply Suggested Settings_ preset option since they only become visible for specific settings.
+Once installed, the Klipper Settings category will initially be hidden but should show up at the bottom of setting visibility preferences. If they don't appear, try selecting the "All" settings preset. Enable visibility of every settings to ensure it's working then hide whatever you don't plan to use. I suggest leaving visibility enabled for checkbox settings like the _Apply Suggested Settings_ preset option since it only becomes visible for specific settings.
 
 <strong>Read setting tooltips for additional help with current features.</strong>
 
 <details><summary><em>List of Supported Klipper Settings</em></summary><br>
-  <strong>Read tooltips to understand why some settings can have negative values.</strong><br/><br/>
+  <strong>Tooltips explain why some settings have negative values by default.</strong><br/><br/>
   
   ![image](https://github.com/jjgraphix/KlipperSettingsPlugin/blob/main/resources/images/ksp_allsettings_0.9.0.JPG)
   
 </details>
 <details><summary><em>Example of Tuning Tower Settings</em></summary><br>
-  <strong>Enabled checkbox stays yellow simply as a reminder the tuning tower is enabled.</strong><br/><br/>
+  <strong>Enabled checkbox stays yellow as a reminder the tuning tower is enabled.</strong><br/><br/>
   
   ![image](https://github.com/jjgraphix/KlipperSettingsPlugin/blob/main/resources/images/ksp_ttsettings_0.9.0.JPG)
   
