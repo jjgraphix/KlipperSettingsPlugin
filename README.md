@@ -28,11 +28,19 @@ Additional features are in the works but please feel free to propose suggestions
 - Improved tooltip descriptions and setting behavior.
 - Various bug fixes and other improvements.
 
-<details><summary><strong>Bug Fix (v0.9.1 Beta)</strong></summary>
+<details><summary><strong>Bug Fix (v0.9.2 Beta)</strong></summary>
   <p><ul type="disc">
-    <li>Fixed crashing in older Cura versions.</li>
-    <li>Custom icon now only enabled for Cura 5.0+</li>
-    <li>Improved presets and backup behavior</li>
+    <li>v0.9.1</li>
+      <ul>
+        <li>Fixed crashing in older Cura versions.</li>
+        <li>Custom icon now only enabled for Cura 5.0+</li>
+        <li>Improved presets and backup behavior</li>
+      </ul>
+    <li>v0.9.2</li>
+      <ul>
+        <li>Fixed incorrect parameter in Pressure Advance Preset</li>
+        <li>Preset layer height now suggested from nozzle size</li>
+      </ul>
   </ul></p>
 </details>
 
