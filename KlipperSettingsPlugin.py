@@ -1,4 +1,4 @@
-# KlipperSettingsPlugin v0.9.1 - Beta
+# KlipperSettingsPlugin v0.9.2 - Beta
 # Copyright (c) 2022 J.Jarrard / JJFX
 # The KlipperSettingsPlugin is released under the terms of the AGPLv3 or higher.
 #
@@ -26,9 +26,11 @@
 #         | Tuning Tower Suggested Settings feature
 #         | Tuning Tower Preset: Pressure Advance
 #         | Tuning Tower Preset: Ringing Tower
-# v0.9.1  | Fixed crashing with older Cura versions
+# v0.9.1  + Fixed crashing in older Cura versions
 #         | Custom icon now only enabled for Cura 5.0+
 #         | Improved preset and backup behavior
+# v0.9.2  + P.A. Preset: Fixed incorrect parameter
+#         | Preset layer height suggested from nozzle size
 
 
 import os.path, json
@@ -616,8 +618,9 @@ class KlipperSettingsPlugin(Extension):
         # TODO: Signal that only emits when settings are changed (remove ignore)
         #     : Consider forcing visibility of override settings??
         global_stack = self._application.getGlobalContainerStack()
+        used_extruder_stacks = self._application.getExtruderManager().getUsedExtruderStacks()
 
-        if not global_stack:
+        if not global_stack or not used_extruder_stacks:
             return
 
         tuning_tower_enabled = global_stack.getProperty('klipper_tuning_tower_enable', 'value')
@@ -633,7 +636,7 @@ class KlipperSettingsPlugin(Extension):
             return
 
         elif not self._current_preset:
-            self._fixValueErrorBug() # Ensure user can't slice with value errors
+            self._fixValueErrorBug() # Force default value error check
             self.showMessage(
               "Tuning tower settings will affect <b>all objects</b> on the build plate.",
               "WARNING", "Klipper Tuning Tower Enabled", 60) # Start warning
@@ -672,9 +675,16 @@ class KlipperSettingsPlugin(Extension):
 
             ## User preset action messages
             if new_preset == "pressure":
+                # Suggest layer height range from current nozzle diameter
+                for extruder in used_extruder_stacks:
+                    nozzle_size = extruder.getProperty('machine_nozzle_size', 'value')
+                    layer_heights = 0.04 * (nozzle_size * 0.75 // 0.04)
+                    layer_heights = "<b>%.2f - %.2f mm</b>  (%.2g mm Nozzle)" % (
+                                    layer_heights, layer_heights + 0.04, nozzle_size)
+
                 self.showMessage(
-                  "Pressure Advance Calibration<br /><br /><i>Tuning Tower Factor:</i><br /><b>Direct Drive: .005<br />Bowden: .020</b><br /><br /><i>Print settings:</i><br /><b>High Print Speed: ~100+ mm/s<br />Coarse Layer Height: ~75% nozzle size</b>",
-                  "NEUTRAL", "Suggested Tuning Tower Settings", 60)
+                  "<b>The following settings must be set manually.</b><br/><br/> <i>Suggested Values for Pressure Advance Calibration:</i>.<br/><br/> <b>Tuning Tower Factor:</b><br/><i>Direct Drive:</i> <b>'.005'</b> | <i>Bowden:</i> <b>'.020'</b><br /><br /><b>Printer Settings:</b><br/><i>Print Speed:</i> <b>~100+ mm/s</b><br/><i>Layer Height:</i> %s" % layer_heights,
+                  "NEUTRAL", "Adjust Printer-Specific Settings", 60)
             ## Next preset message...
 
             # Hide last neutral message when preset changed
@@ -685,6 +695,8 @@ class KlipperSettingsPlugin(Extension):
         self._current_preset = new_preset
 
         if apply_preset:
+            self._fixValueErrorBug() # Ensure user can't slice with value errors
+
             preset_settings = self.getPresetDefinition(new_preset, override)
 
         if not preset_settings:
@@ -888,7 +900,7 @@ class KlipperSettingsPlugin(Extension):
         presets = [(
             "pressure", [
                 ("klipper_tuning_tower_command", "SET_PRESSURE_ADVANCE"),
-                ("klipper_tuning_tower_parameter", "FACTOR"),
+                ("klipper_tuning_tower_parameter", "ADVANCE"),
                 ("klipper_tuning_tower_method", "factor"),
                 ("klipper_tuning_tower_start", 0),
                 ("klipper_tuning_tower_skip", 0),
