@@ -47,18 +47,25 @@ Once installed, the Klipper Settings category will initially be hidden but shoul
 
 <strong>Read setting tooltips for additional help with current features.</strong>
 
-<details><summary><em>List of Supported Klipper Settings</em></summary><br>
+<details><summary><em>All Supported Klipper Settings</em></summary><br>
   <strong>Tooltips explain why some settings have negative values by default.</strong><br/><br/>
-  
-  ![image](https://github.com/jjgraphix/KlipperSettingsPlugin/blob/main/resources/images/ksp_allsettings_0.9.0.JPG)
-  
-</details>
-<details><summary><em>Example of Tuning Tower Settings</em></summary><br>
-  <strong>Enabled checkbox stays yellow as a reminder the tuning tower is enabled.</strong><br/><br/>
-  
-  ![image](https://github.com/jjgraphix/KlipperSettingsPlugin/blob/main/resources/images/ksp_ttsettings_0.9.0.JPG)
+
+  ![image](https://github.com/jjgraphix/KlipperSettingsPlugin/blob/main/resources/images/ksp_allsettings_0.9.png)
   
 </details>
+<details><summary><em>Preset Advance Tuning Tower Preset</em></summary><br>
+  <strong>Example with 'Apply Suggested Settings' enabled.</strong><br/><br/>
+
+  ![image](https://github.com/jjgraphix/KlipperSettingsPlugin/blob/main/resources/images/ksp_tt_preset-pa_ex1.png)
+  
+</details>
+<details><summary><em>Ringing Tower Tuning Tower Preset</em></summary><br>
+  <strong>Example with 'Apply Suggested Settings' enabled.</strong><br/><br/>
+
+  ![image](https://github.com/jjgraphix/KlipperSettingsPlugin/blob/main/resources/images/ksp_tt_preset-rt_ex1.png)
+  
+</details>
+
 
 I highly recommend also using Ghostkeeper's amazing [SettingsGuide](https://github.com/Ghostkeeper/SettingsGuide) to improve readability of tooltips.<br/><br/>
 
