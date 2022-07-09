@@ -63,7 +63,7 @@ The current Tuning Tower presets are defined by settings described in the Klippe
   ![image](https://github.com/jjgraphix/KlipperSettingsPlugin/blob/main/resources/images/ksp_allsettings_0.9.png)
   
 </details>
-<details><summary><em>Preset Advance Tuning Tower Preset</em></summary><br>
+<details><summary><em>Pressure Advance Tuning Tower Preset</em></summary><br>
   <strong>Example with 'Apply Suggested Settings' enabled.</strong><br/><br/>
 
   ![image](https://github.com/jjgraphix/KlipperSettingsPlugin/blob/main/resources/images/ksp_tt_preset-pa_ex1.png)
