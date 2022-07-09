@@ -53,6 +53,8 @@ Tested stable up to Cura 5.0 and 4.8+ seems to work well but various quality of 
 
 Once installed, the Klipper Settings category will initially be hidden but should show up at the bottom of setting visibility preferences. If they don't appear, try selecting the "All" settings preset. Enable visibility of every settings to ensure it's working then hide whatever you don't plan to use. I suggest leaving visibility enabled for checkbox settings like the _Apply Suggested Settings_ preset option since it only becomes visible for specific settings.
 
+The current Tuning Tower presets are defined by settings described in the Klipper documentation. If the _Apply Suggested Settings_ option is disabled, the preset will only affect Tuning Tower settings. When enabled, additional Klipper and printer settings necessary for the calibration will also be set. For example, reducing max_accel and square_corner_velocity during Pressure Advance calibration. Any settings changed will be restored to their prior values when the tuning tower is disabled or Cura is restarted. 
+
 <strong>Read setting tooltips for additional help with current features.</strong>
 
 <details><summary><em>All Supported Klipper Settings</em></summary><br>
