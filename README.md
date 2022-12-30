@@ -89,7 +89,7 @@ Uninstall **PressureAdvanceSettingPlugin**, if already added to Cura.
 Download KlipperSettingsPlugin source [.zip file](https://github.com/jjgraphix/KlipperSettingsPlugin/archive/refs/heads/main.zip) from Github.
   
 Open Cura, click *'Help'*, *'Show Configuration Folder'*, then navigate to the "plugins" subfolder and unpack .zip file there.
-Rename folder to **"KlipperSettingsPlugin"**, removing suffix added by Github (e.g "-master"). 
+Rename folder to **"KlipperSettingsPlugin"**, removing suffix added by Github (e.g "-main"). 
   
 *Repeat process if there's a subfolder of the same name.* <br/><br/>
 
