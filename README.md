@@ -1,13 +1,13 @@
 ## KlipperSettingsPlugin
 
-*KlipperSettings version 1.0 is now available!*<br/>
-*Thank you to everyone who helped with beta testing and provided feedback.*
+*KlipperSettings version 1.0 is now available!* <br/>
+*Thank you to everyone who helped with beta testing and provided feedback.* <br/>
 
-Plugin for Ultimaker Cura which adds a new **Klipper Settings** category with a number of Klipper-specific settings and features to the main settings list. Only compatible with [*Klipper firmware*](https://github.com/Klipper3d/klipper/). All features are designed to work without the need for additional Klipper macros.
+Plugin for Ultimaker Cura which adds a new **Klipper Settings** category with a number of Klipper-specific settings and features to the main settings list. Only compatible with *Klipper firmware*. All features are designed to work without the need for additional Klipper macros.
 
-This project is an evolution of my earlier [PressureAdvanceSettingPlugin](https://github.com/jjgraphix/PressureAdvanceSettingPlugin), which is no longer supported. The new Klipper settings category includes improved Pressure Advance settings as well as a number of additional settings and features, including calibration presets to initiate Klipper's Tuning Tower sequence.<br/>
+This project is an evolution of my earlier [PressureAdvanceSettingPlugin](https://github.com/jjgraphix/PressureAdvanceSettingPlugin), which is no longer supported. The new Klipper settings category includes improved Pressure Advance settings as well as a number of additional settings and features, including calibration presets to initiate Klipper's Tuning Tower sequence.<br/><br/>
 
-*Compatibility tested up to Cura version 5.2.2 (SDK 8.2.0)*<br/>
+*Compatibility tested up to Cura version 5.2.2 (SDK 8.2.0)* <br/>
 
 ### Current Release Notes (v1.0.1)
 - Z Offset Setting
@@ -59,66 +59,66 @@ This project is an evolution of my earlier [PressureAdvanceSettingPlugin](https:
   </ul></p>
 </details>
 
-*Check setting visibility for new features after updating!*
+_Check setting visibility for new features after updating!_
 
 ### Compatibility
 **Recommended Cura Versions:** 5.0 (SDK 8.0.0) and newer.<br/>
 Cura versions prior to 4.0.0 (SDK 6.0.0) are *not supported*. Versions prior to 4.5.0 may not be supported in the future and testing will be limited in versions prior to 4.8.0. Please report any issues in older versions if they're needed.
 
-**Multiple extruders are supported for compatible settings.**
+Multiple extruders are supported for compatible settings. Klipper tuning tower calibrations should only be done with one active extruder.
 
 ### How to Use
 When first installed, the Klipper Settings category will be hidden and appears at the bottom of setting visibility preferences. It's recommended to first enable visibility of every setting then hide whatever isn't needed later. If it's not appearing, try selecting the "All" settings preset. Options such as the *Apply Suggested Settings* tuning tower feature are only visible when specific settings are active and should be left visible.
 
-**See feature notes below and setting tool tips in Cura for information on available features.**
+<strong>See feature notes below and setting tool tips in Cura for information on available features.</strong>
 
-<details>
-<summary><em>List of All Available Settings:</em></summary><br>
+<details><summary><em>All Supported Klipper Settings</em></summary><br>
   <strong>Tool tips explain why some settings have negative values by default.</strong><br/><br/>
 
   ![image](https://github.com/jjgraphix/KlipperSettingsPlugin/blob/main/resources/images/examples/KSP_AllSettings_v1.0.PNG)
+  
 </details>
 
-*I highly recommend Ghostkeeper's [SettingsGuide](https://github.com/Ghostkeeper/SettingsGuide) Cura plugin to improve readability of tool tips.*<br/>
+*I highly recommend Ghostkeeper's [SettingsGuide](https://github.com/Ghostkeeper/SettingsGuide) Cura plugin to improve readability of tool tips.*<br/><br/>
 
 ### Features Overview
-- **Tuning Tower Calibration**</br>
-  [Klipper Tuning Tower](https://www.klipper3d.org/G-Codes.html#tuning_tower) settings can be used to fine tune a wide range of Klipper commands. Presets are available to easily run common Pressure Advance and Input Shaper calibrations. The *Apply Suggested Settings* option will automatically apply additional printer settings necessary for each calibration as defined in the Klipper documentation. All changed settings are backed up and restored to their prior values when the tuning tower is disabled. Custom presets allow 3 unique profiles to be saved for frequently used settings.
-  
-  **Only one active extruder is supported.**
-  
-  <details>
-  <summary><em>Example of tuning tower preset applied with suggested settings:</em></summary><br><p>
-  
-    ![image](https://github.com/jjgraphix/KlipperSettingsPlugin/blob/main/resources/images/examples/KSP_Preset-ex1_v1.0.PNG)
+- <b>Tuning Tower Calibration</b></br>
+  Klipper Tuning Tower settings can be used to fine tune a wide range of Klipper commands. Presets are available to easily run the most common Pressure Advance and Input Shaper calibrations. The <em>Apply Suggested Settings</em> option will automatically apply additional printer settings necessary for each calibration as defined in the Klipper documentation. All changed settings are backed up and restored to their prior values when the tuning tower is disabled.
+
+  Support for 3 custom preset profiles allow frequently used tuning tower settings to be saved and recalled at any time.
+
+  <details><summary><em>Example of preset applied with suggested settings enabled:</em></summary><br><p>
+
+  ![image](https://github.com/jjgraphix/KlipperSettingsPlugin/blob/main/resources/images/examples/KSP_Preset-ex1_v1.0.PNG)
+
   </p></details>
 
-- **Pressure Advance**</br>
-Klipper's pressure advance feature is used sharpen the appearance of corners, improve line width consistency and reduce ooze during non-extrude moves. This value can be adjusted for multiple extruders, individual line types and even different mesh objects in the same print. The *Pressure Advance* tuning tower preset can be used to fine tune these values as described in the [Klipper documentation](https://www.klipper3d.org/Pressure_Advance.html). An option to set the *Pressure Advance Smooth Time* value is also included.
+- <b>Pressure Advance</b></br>
+Klipper's pressure advance feature is used sharpen the appearance of corners, improve line width consistency and reduce ooze during non-extrude moves. This value can be adjusted for multiple extruders, individual line types and even different mesh objects in the same print. The *Pressure Advance* tuning tower preset can be used to fine tune these values as described in the <a href="https://www.klipper3d.org/Pressure_Advance.html">Klipper documentation</a>.
 
-- **Firmware Retraction**</br> 
-Enables the use of <code>G10</code> and <code>G11</code> firmware retraction commands. The <code>[firmware_retraction]</code> section in [Klipper configuration](https://www.klipper3d.org/Config_Reference.html#firmware_retraction) must be enabled to use this feature. Cura's standard retraction settings are mirrored as the default values except <code>UNRETRACT_EXTRA_LENGTH</code> is disabled by default. Multiple extruders are supported without requiring additional macros. Settings for each extruder are applied immediately following gcode tool change commands (T0, T1, etc.).
+- <b>Firmware Retraction</b></br> 
+Enables the use of G10 & G11 firmware retraction commands. The *[firmware_retraction]* section in the Klipper config must already be enabled to use this feature. Cura's standard retraction settings are mirrored as the default values except UNRETRACT_EXTRA_LENGTH is disabled by default. Multiple extruders are supported without requiring additional macros. Settings for each extruder are applied immediately following gcode tool change commands (T0, T1, etc.).
 
-- **Z offset Control**</br>
-  *Initial Layer Z Offset* applies <code>SET_GCODE_OFFSET Z_ADJUST=</code> only before gcode coordinates equal to the first layer height then immediately instructs Klipper to revert the command on the **next z axis change**, even if the print is stopped. For added safety, the maximum adjustment range is +/- first layer height.
+- <b>Z offset Control</b></br> 
+Due to the inherent risk associated with z offset changes, no adjustments can be made to an existing offset which could persist after the print has completed. The *Initial Layer Z Offset* feature only applies a 'SET_GCODE_OFFSET Z_ADJUST=' command before gcode coordinates equal to the first layer height then immediately instructs Klipper to revert the command on the <b>next z axis change</b>, even if the print is stopped. For added safety, the maximum adjustment range is +/- first layer height.
 
-  Due to the inherent risk associated with it, no permanent adjustment be made to an existing offset. The *Override Z Offset* feature defines a <b>total z offset value</b> after the start gcode sequence with <code>SET_GCODE_OFFSET Z=</code>. This overrides any existing adjustment since the printer was restarted and ***will remain applied*** after the print has completed. Only recommended for advanced users or to ensure an existing offset is removed. If *Inital Layer Z Offset* is also applied, their affects will be combined.
+  The *Override Z Offset* option defines a <b>total z offset value</b> which will override any existing offset since the printer was restarted. This is applied after the start gcode sequence and <b>will remain applied</b> after the print has completed. It's only recommended to use this to remove an existing offset or as a last resort. If both options are enabled their affects will be <b>combined</b> on the first layer.
   
-  *Use of these settings are done at your own risk.*
-  
-- **Input Shaper Control**</br>
-Controls input shaper settings associated with Klipper's resonance compensation. The *Ringing Tower* tuning tower preset can be used to manually tune these values as described in the [Klipper documentation](https://www.klipper3d.org/Resonance_Compensation.html).
+  <b>*Use caution when applying these settings.*</b>
 
-- **Velocity Limits Control**</br> 
+- <b>Input Shaper Control</b></br>
+Controls input shaper settings associated with Klipper's resonance compensation. The *Ringing Tower* tuning tower preset can be used to manually tune these values as described in the <a href="https://www.klipper3d.org/Resonance_Compensation.html">Klipper documentation</a>.
+
+- <b>Velocity Limits Control</b></br> 
 Allows control over Klipper's velocity and acceleration limits and are generally not necessary to adjust outside of tuning tower calibrations.
 
-- **Experimental Features**</br>
-Options listed as experimental have been tested but may be modified or removed in the future. Please read the corresponding tool tips in Cura for more information. Most new feature requests will first be tested here moving forward.<br/><br/>
+- <b>Experimental Features</b></br>
+Options listed as experimental have been tested but may be modified or removed in the future. Please read the corresponding tool tips in Cura for more information. Most new feature requests will first be tested here moving forward.
 
 ## Installation
 Cura installation packages will be available soon and hopefully KlipperSettings will be added as an official Cura plugin in the near future. Until then, follow the manual installation instructions below.
 
-### Update from Previous Version
+### Update from a Previous Version
 Simply delete and replace contents of KlipperSettingsPlugin folder with those from the latest release. *Make sure all files are replaced*. Any additional files in the previous version are obsolete or temporary and can safely be deleted.
 
 ### Install from Source Files
@@ -126,11 +126,11 @@ If using the old **PressureAdvanceSettingPlugin**, please remove it before insta
   
 Download KlipperSettingsPlugin source [.zip file](https://github.com/jjgraphix/KlipperSettingsPlugin/archive/refs/heads/main.zip) from Github.
   
-Open Cura, click *Help*, *Show Configuration Folder*, then navigate to "plugins" subfolder and unpack the .zip file.
+Open Cura, click *'Help'*, *'Show Configuration Folder'*, then navigate to the "plugins" subfolder and unpack .zip file there.
 
-Rename the folder to **"KlipperSettingsPlugin"**, removing any Github suffix (e.g. "-main"). 
+Rename the folder to **"KlipperSettingsPlugin"**, removing any Github suffix (e.g. "-release", "-main"). 
   
-*Repeat process if there's a subfolder of the same name.*<br/><br/>
+*Repeat process if there's a subfolder of the same name.* <br/><br/>
 
 ## More Info
 
