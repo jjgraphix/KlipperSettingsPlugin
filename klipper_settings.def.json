@@ -10,7 +10,7 @@
     },
     "klipper_tuning_tower_preset": {
         "label": "Tuning Tower Presets",
-        "description": "Presets for common Tuning Tower calibrations and custom user profiles. Only Tuning Tower settings are affected by a preset unless <em>Apply Suggested Settings</em> is also enabled, which is only available for specific presets.<br /><br /> Support for 3 custom preset profiles are saved to the local Cura config file. Custom presets only apply to Tuning Tower settings.<br /><br /> <b>Recommended to be used with Klipper's calibration models.</b>",
+        "description": "Presets for common Tuning Tower calibrations and custom user profiles. Only Tuning Tower settings are affected by a preset unless <em>Apply Suggested Settings</em> is also enabled.<br /><br /> Custom preset profiles are saved in the Cura config and only affect <em>Tuning Tower</em> settings.<br /><br /> <b>Recommended to use with Klipper's calibration models.</b>",
         "type": "enum",
         "options": {
             "pressure": "Pressure Advance",
@@ -26,7 +26,7 @@
         "children": {
             "klipper_tuning_tower_override": {
                 "label": "Apply Suggested Settings",
-                "description": "Applies additional Klipper settings necessary for the current calibration sequence. When enabled, a number of additional <em>Klipper and Cura</em> settings defined by the preset will be adjusted. Otherwise presets only affect <em>Tuning Tower</em> setting values. All changes are generally as described in the Klipper documentation.<br /><br /> <b>Suggestions are shown for printer-specific settings which may still need to be set manually.</b> <br /><br /> <em>All setting changes are backed up and displayed.</em><br /><br /> <b>Disable to restore changed settings to their previous state.</b>",
+                "description": "Applies additional Klipper settings necessary for the current calibration sequence. When enabled, a number of additional <em>Klipper and Cura</em> settings defined by the preset will be adjusted. Otherwise presets only affect <em>Tuning Tower</em> setting values. All changes are as described in the Klipper documentation.<br /><br /> <b>Suggestions are shown for any settings which still need to be set manually.</b> <br /><br /> <em>Disable to restore changed setting values.</em>",
                 "type": "bool",
                 "default_value": false,
                 "enabled": "klipper_tuning_tower_enable and klipper_tuning_tower_preset in ['pressure', 'accel']",
@@ -38,7 +38,7 @@
     },
     "klipper_tuning_tower_command": {
         "label": "Tuning Tower Command",
-        "description": "The Klipper command to execute during the tuning process. This value must be specified.<br /><br /> <em>Common Examples:</em><br /> SET_PRESSURE_ADVANCE<br /> SET_VELOCITY_LIMIT<br /> SET_RETRACTION<br /><br /> <em>Quotes automatically added for multiple words:</em><br /> 'SET_HEATER_TEMPERATURE HEATER=extruder'",
+        "description": "The Klipper command to execute during the tuning process. This value must be specified.<br /><br /> <em>Common Examples:</em><br /> <code>SET_PRESSURE_ADVANCE</code><br /> SET_VELOCITY_LIMIT<br /> SET_RETRACTION<br /><br /> <em>Quotes automatically added for multiple words:</em><br /> 'SET_HEATER_TEMPERATURE HEATER=extruder'",
         "type": "str",
         "default_value": "",
         "allow_empty": false,
@@ -144,17 +144,15 @@
     },
     "klipper_pressure_advance_enable": {
         "label": "Pressure Advance Control",
-        "description": "Enables control of Pressure Advance in Klipper firmware. This feature can greatly sharpen the appearance of corners, improve line width consistency and reduce the need for retraction during non-extrusion moves. Supports control of individual mesh objects and multiple extruders.<br /><br /> <b>To disable Pressure Advance, enable and set values to '0'.</b><br /><br /> <em>This plugin is not compatible with Marlin's Linear Advance.</em>",
+        "description": "Enables control of Pressure Advance for Klipper firmware. This feature can greatly sharpen the appearance of corners, improve line width consistency and reduce the need for retraction during non-extrusion moves. Supports control of individual mesh objects and multiple extruders.<br /><br /> <b>To disable Pressure Advance, enable and set values to '0'.</b>",
         "type": "bool",
         "default_value": false,
-        "resolve": "any(extruderValues('klipper_pressure_advance_enable'))",
         "settable_per_mesh": false,
-        "settable_per_extruder": false,
-        "settable_per_meshgroup": false
+        "settable_per_extruder": false
     },
     "klipper_pressure_advance_factor": {
         "label": "Pressure Advance Factor",
-        "description": "Extrusion coefficient for Klipper's Pressure Advance feature.<br /><br /> Common values are <b>0.01 - 0.10 for direct drive</b> and <b>0.20 - 0.60 for bowden extruders</b>. High values can lead to excessive extruder movements which may result in missed extruder steps when accelerating/decelerating. Recommended to keep values below 0.50 when possible. Adjustments may be necessary for different materials, nozzles, etc.<br /><br /> <b>A value of '0' will disable Pressure Advance.</b><br /><br /> <em>Settings of subsequent features will override this value.</em><br /><br /> <em>Default: 0 (Disable)</em>",
+        "description": "Extrusion coefficient for Klipper's Pressure Advance feature.<br /><br /> Common values are <b>0.01 - 0.10 for direct drive</b> and <b>0.20 - 0.60 for bowden extruders</b>. High values can cause excessive extruder movements which may result in missed extruder steps when accelerating/decelerating. Recommended to keep values below 0.50. Adjustments may be necessary for different materials, nozzles, etc.<br /><br /> <b>A value of '0' will disable Pressure Advance.</b><br /><br /> <em>Default: 0 (Disable)</em>",
         "type": "float",
         "default_value": 0,
         "minimum_value": "0",
@@ -163,11 +161,10 @@
         "enabled": "resolveOrValue('klipper_pressure_advance_enable')",
         "settable_per_mesh": true,
         "settable_per_extruder": true,
-        "settable_per_meshgroup": false,
         "children": {
-            "klipper_pressure_advance_factor_infill": {
+            "klipper_pressure_advance_infill": {
                 "label": "Infill Pressure Advance",
-                "description": "Pressure Advance factor when printing infill. Adjustments could be used to minimize excessive extruder movements for certain infill types and high print speeds but reducing too much may increase stringing.<br /><br /> <b>A value of '0' disables pressure advance for this feature.</b>",
+                "description": "Pressure Advance factor when printing infill. Could be used to minimize excessive extruder movement during infill but reducing too much may increase stringing.<br /><br /> <b>A value of '0' disables pressure advance for this feature.</b>",
                 "type": "float",
                 "default_value": 0,
                 "value": "klipper_pressure_advance_factor",
@@ -177,10 +174,9 @@
                 "enabled": "resolveOrValue('klipper_pressure_advance_enable') and infill_sparse_density > 0",
                 "settable_per_mesh": true,
                 "settable_per_extruder": true,
-                "settable_per_meshgroup": false,
                 "limit_to_extruder": "infill_extruder_nr"
             },
-            "klipper_pressure_advance_factor_wall": {
+            "klipper_pressure_advance_wall": {
                 "label": "Wall Pressure Advance",
                 "description": "Pressure Advance factor used when printing walls. Optimized values can sharpen the appearance of corners, reduce bulging and improve extrusion consistency when varying print speeds.<br /><br /> <b>A value of '0' disables pressure advance for this feature.</b>",
                 "type": "float",
@@ -192,41 +188,38 @@
                 "enabled": "resolveOrValue('klipper_pressure_advance_enable') and wall_line_count > 0",
                 "settable_per_mesh": true,
                 "settable_per_extruder": true,
-                "settable_per_meshgroup": false,
                 "children": {
-                    "klipper_pressure_advance_factor_wall_0": {
+                    "klipper_pressure_advance_wall_0": {
                         "label": "Outer Wall Pressure Advance",
                         "description": "Pressure Advance factor used for the outermost wall. Optimized values can greatly improve the appearance of corners.<br /><br /> <b>A value of '0' disables pressure advance for this feature.</b>",
                         "type": "float",
                         "default_value": 0,
-                        "value": "klipper_pressure_advance_factor_wall",
+                        "value": "klipper_pressure_advance_wall",
                         "minimum_value": "0",
                         "maximum_value": "2",
                         "maximum_value_warning": "0.8",
                         "enabled": "resolveOrValue('klipper_pressure_advance_enable') and wall_line_count > 0",
                         "settable_per_mesh": true,
                         "settable_per_extruder": true,
-                        "settable_per_meshgroup": false,
                         "limit_to_extruder": "wall_0_extruder_nr"
                     },
-                    "klipper_pressure_advance_factor_wall_x": {
+                    "klipper_pressure_advance_wall_x": {
                         "label": "Inner Wall Pressure Advance",
                         "description": "Pressure Advance factor used only for inner walls.<br /><br /> <b>A value of '0' disables pressure advance for this feature.</b>",
                         "type": "float",
                         "default_value": 0,
-                        "value": "klipper_pressure_advance_factor_wall",
+                        "value": "klipper_pressure_advance_wall",
                         "minimum_value": "0",
                         "maximum_value": "2",
                         "maximum_value_warning": "0.8",
                         "enabled": "resolveOrValue('klipper_pressure_advance_enable') and wall_line_count > 1",
                         "settable_per_mesh": true,
                         "settable_per_extruder": true,
-                        "settable_per_meshgroup": false,
                         "limit_to_extruder": "wall_x_extruder_nr"
                     }
                 }
             },
-            "klipper_pressure_advance_factor_topbottom": {
+            "klipper_pressure_advance_topbottom": {
                 "label": "Top/Bottom Pressure Advance",
                 "description": "Pressure Advance factor used for top/bottom skin layers. Optimized value can improve surface appearance and line width consistency for these layers. High values may lead to excessive extruder movements.<br /><br /> <b>A value of '0' disables pressure advance for this feature.</b>",
                 "type": "float",
@@ -238,12 +231,11 @@
                 "enabled": "resolveOrValue('klipper_pressure_advance_enable') and top_bottom_thickness > 0",
                 "settable_per_mesh": true,
                 "settable_per_extruder": true,
-                "settable_per_meshgroup": false,
                 "limit_to_extruder": "top_bottom_extruder_nr"
             },
-            "klipper_pressure_advance_factor_layer_0": {
+            "klipper_pressure_advance_layer_0": {
                 "label": "Initial Layer Pressure Advance",
-                "description": "Pressure Advance factor used only during the first layer. Value will also override any mesh object feature setting for the first layer. Adjusting could be used to optimize line width consistency when varying print speed.<br /><br /> <b>A value of '0' disables pressure advance for this feature.</b>",
+                "description": "Pressure Advance factor used only during the first layer. This value overrides all other line types while printing the first layer. Adjusting could be used to optimize line width consistency when varying print speed.<br /><br /> <b>A value of '0' disables pressure advance for the first layer.</b>",
                 "type": "float",
                 "default_value": 0,
                 "value": "klipper_pressure_advance_factor",
@@ -252,10 +244,9 @@
                 "maximum_value_warning": "0.8",
                 "enabled": "resolveOrValue('klipper_pressure_advance_enable')",
                 "settable_per_mesh": false,
-                "settable_per_extruder": true,
-                "settable_per_meshgroup": false
+                "settable_per_extruder": true
             },
-            "klipper_pressure_advance_factor_support": {
+            "klipper_pressure_advance_support": {
                 "label": "Support Pressure Advance",
                 "description": "Pressure Advance factor used for support infill and interface structures. Adjustments could be used to minimize excessive extruder movement but there is typically little benefit from changing these values.<br /><br /> <b>A value of '0' disables pressure advance for this feature.</b>",
                 "type": "float",
@@ -267,44 +258,41 @@
                 "enabled": "resolveOrValue('klipper_pressure_advance_enable') and (support_enable or support_meshes_present)",
                 "settable_per_mesh": false,
                 "settable_per_extruder": true,
-                "settable_per_meshgroup": false,
                 "limit_to_extruder": "support_extruder_nr",
                 "children": {
-                    "klipper_pressure_advance_factor_support_infill": {
+                    "klipper_pressure_advance_support_infill": {
                         "label": "Support Infill Pressure Advance",
                         "description": "Pressure Advance factor used only for support infill.<br /><br /> <b>A value of '0' disables pressure advance for this feature.</b>",
                         "type": "float",
                         "default_value": 0,
-                        "value": "klipper_pressure_advance_factor_support",
+                        "value": "klipper_pressure_advance_support",
                         "minimum_value": "0",
                         "maximum_value": "2",
                         "maximum_value_warning": "0.8",
                         "enabled": "resolveOrValue('klipper_pressure_advance_enable') and (support_enable or support_meshes_present)",
                         "settable_per_mesh": false,
                         "settable_per_extruder": true,
-                        "settable_per_meshgroup": false,
                         "limit_to_extruder": "support_infill_extruder_nr"
                     },
-                    "klipper_pressure_advance_factor_support_interface": {
+                    "klipper_pressure_advance_support_interface": {
                         "label": "Support Interface Pressure Advance",
                         "description": "Pressure Advance factor used only for the support interface.<br /><br /> <b>A value of '0' disables pressure advance for this feature.</b>",
                         "type": "float",
                         "default_value": 0,
-                        "value": "klipper_pressure_advance_factor_support",
+                        "value": "klipper_pressure_advance_support",
                         "minimum_value": "0",
                         "maximum_value": "2",
                         "maximum_value_warning": "0.8",
                         "enabled": "resolveOrValue('klipper_pressure_advance_enable') and support_interface_enable and (support_enable or support_meshes_present)",
                         "settable_per_mesh": false,
                         "settable_per_extruder": true,
-                        "settable_per_meshgroup": false,
                         "limit_to_extruder": "support_interface_extruder_nr"
                     }
                 }
             },
-            "klipper_pressure_advance_factor_prime_tower": {
+            "klipper_pressure_advance_prime_tower": {
                 "label": "Prime Tower Pressure Advance",
-                "description": "Pressure Advance factor used when printing a prime tower. There is typically no beneficial from changing this value.<br /><br /> <b>A value of '0' disables pressure advance for this feature.</b>",
+                "description": "Pressure Advance factor used when printing a prime tower.<br /><br /> <b>A value of '0' disables pressure advance for this feature.</b>",
                 "type": "float",
                 "default_value": 0,
                 "value": "klipper_pressure_advance_factor",
@@ -313,12 +301,11 @@
                 "maximum_value_warning": "0.8",
                 "enabled": "resolveOrValue('klipper_pressure_advance_enable') and resolveOrValue('prime_tower_enable')",
                 "settable_per_mesh": false,
-                "settable_per_extruder": true,
-                "settable_per_meshgroup": false
+                "settable_per_extruder": true
             },
-            "klipper_pressure_advance_factor_skirt_brim": {
+            "klipper_pressure_advance_skirt_brim": {
                 "label": "Skirt/Brim Pressure Advance",
-                "description": "Pressure Advance factor used when printing skirts or brims. There is typically no benefit from changing this value.<br /><br /> <b>A value of '0' disables pressure advance for this feature.</b>",
+                "description": "Pressure Advance factor used when printing skirts or brims.<br /><br /> <b>A value of '0' disables pressure advance for this feature.</b>",
                 "type": "float",
                 "default_value": 0,
                 "value": "klipper_pressure_advance_factor",
@@ -328,7 +315,6 @@
                 "enabled": "resolveOrValue('klipper_pressure_advance_enable') and (resolveOrValue('adhesion_type') == 'skirt' or resolveOrValue('adhesion_type') == 'brim' or resolveOrValue('draft_shield_enabled') or resolveOrValue('ooze_shield_enabled'))",
                 "settable_per_mesh": false,
                 "settable_per_extruder": true,
-                "settable_per_meshgroup": false,
                 "limit_to_extruder": "adhesion_extruder_nr"
             }
         }
@@ -338,10 +324,9 @@
         "description": "Enables control of the smooth time variable for Klipper's Pressure Advance. Can be applied with or without <em>Pressure Advance Control</em> but has no effect if pressure advance factor is '0'.",
         "type": "bool",
         "default_value": false,
-        "resolve": "any(extruderValues('klipper_pressure_advance_enable'))",
+        "resolve": "any(extruderValues('klipper_smooth_time_enable'))",
         "settable_per_mesh": false,
         "settable_per_extruder": false,
-        "settable_per_meshgroup": false,
         "children": {
             "klipper_smooth_time_factor": {
                 "label": "Smooth Time Range",
@@ -354,8 +339,7 @@
                 "maximum_value_warning": "0.1",
                 "enabled": "resolveOrValue('klipper_smooth_time_enable')",
                 "settable_per_mesh": false,
-                "settable_per_extruder": true,
-                "settable_per_meshgroup": false
+                "settable_per_extruder": true
             }
         }
     },
@@ -395,12 +379,12 @@
     },
     "klipper_retraction_speed": {
         "label": "Retraction Speed",
-        "description": "The speed in mm/s at which filament is retracted and primed during <b>G10 & G11</b> commands. Cura's retraction setting is used as the default value.<br /><br /> <b>The [firmware_retraction] section must be enabled in Klipper config.</b><br /><br /> <b>A value of '-1.0' will disable speed control and use current Klipper config values.</b><br /><br /> <em>Default: Cura 'Retraction Speed'</em>",
+        "description": "The speed in mm/s at which filament is retracted and primed during <b>G10 & G11</b> commands. Cura's retraction setting is used as the default value.<br /><br /> <b>The [firmware_retraction] section must be enabled in Klipper config.</b><br /><br /> <b>A value of '0' will disable speed control and use current Klipper config values.</b><br /><br /> <em>Default: Cura 'Retraction Speed'</em>",
         "type": "float",
         "unit": "mm/s",
         "default_value": 0,
         "value": "retraction_speed",
-        "minimum_value": "1 if klipper_retraction_speed != 0 else 0",
+        "minimum_value": "0",
         "minimum_value_warning": "5 if klipper_retract_speed >= 1 or klipper_retract_prime_speed >= 1 else 0",
         "maximum_value_warning": "99",
         "enabled": "resolveOrValue('machine_firmware_retract')",
@@ -409,12 +393,12 @@
         "children": {
             "klipper_retract_speed": {
                 "label": "Retract Speed",
-                "description": "The speed at which filament is retracted during a <b>G10</b> command. Cura's retraction setting is used as the default value.<br /><br /> <i>Klipper Default: 20 mm/s</i><br /><br /> <b>The [firmware_retraction] section must be enabled in Klipper config.</b><br /><br /> <b>A value of '-1.0' will disable control and use the current Klipper config value.</b><br /><br /> <em>Default: Cura 'Retraction Retract Speed'</em>",
+                "description": "The speed at which filament is retracted during a <b>G10</b> command. Cura's retraction setting is used as the default value.<br /><br /> <i>Klipper Default: 20 mm/s</i><br /><br /> <b>The [firmware_retraction] section must be enabled in Klipper config.</b><br /><br /> <b>A value of '0' will disable control and use the current Klipper config value.</b><br /><br /> <em>Default: Cura 'Retraction Retract Speed'</em>",
                 "type": "float",
                 "unit": "mm/s",
                 "default_value": 0,
                 "value": "retraction_retract_speed",
-                "minimum_value": "1 if klipper_retract_speed != 0 else 0",
+                "minimum_value": "0",
                 "minimum_value_warning": "5 if klipper_retract_speed >= 1 else 0",
                 "maximum_value_warning": "99",
                 "enabled": "resolveOrValue('machine_firmware_retract')",
@@ -423,12 +407,12 @@
             },
             "klipper_retract_prime_speed": {
                 "label": "Unretract Speed",
-                "description": "The speed at which filament unretracts during a <b>G11</b> command. Cura's retraction setting is used as the default value.<br /><br /> <i>Klipper Default: 10 mm/s</i><br /><br /> <b>The [firmware_retraction] section must be enabled in Klipper config.</b><br /><br /> <b>A value of '-1.0' will disable control and use the current Klipper config value.</b><br /><br /> <em>Default: Cura 'Retraction Prime Speed'</em>",
+                "description": "The speed at which filament unretracts during a <b>G11</b> command. Cura's retraction setting is used as the default value.<br /><br /> <i>Klipper Default: 10 mm/s</i><br /><br /> <b>The [firmware_retraction] section must be enabled in Klipper config.</b><br /><br /> <b>A value of '0' will disable control and use the current Klipper config value.</b><br /><br /> <em>Default: Cura 'Retraction Prime Speed'</em>",
                 "type": "float",
                 "unit": "mm/s",
                 "default_value": 0,
                 "value": "retraction_prime_speed",
-                "minimum_value": "1 if klipper_retract_prime_speed != 0 else 0",
+                "minimum_value": "0",
                 "minimum_value_warning": "5 if klipper_retract_prime_speed >= 1 else 0",
                 "maximum_value_warning": "99",
                 "enabled": "resolveOrValue('machine_firmware_retract')",
@@ -461,7 +445,7 @@
                 "unit": "mm",
                 "default_value": 0,
                 "minimum_value": "-0.4",
-                "minimum_value_warning": "-0.10 if klipper_z_offset_set_total < 0 else 0.0001",
+                "minimum_value_warning": "-0.1 if klipper_z_offset_set_total < 0 else 0.0001",
                 "maximum_value": "0.4",
                 "maximum_value_warning": "0.1",
                 "enabled": "klipper_z_offset_control_enable and klipper_z_offset_set_enable",
@@ -477,7 +461,7 @@
                 "minimum_value": "-(layer_height_0)",
                 "minimum_value_warning": "-(layer_height_0 / 2)",
                 "maximum_value": "layer_height_0",
-                "maximum_value_warning": "0.04",
+                "maximum_value_warning": "0.01",
                 "enabled": "klipper_z_offset_control_enable",
                 "settable_per_mesh": false, 
                 "settable_per_extruder": false
