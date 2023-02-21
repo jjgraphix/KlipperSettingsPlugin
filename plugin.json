@@ -1,7 +1,7 @@
 {
     "name": "Klipper Settings Plugin",
     "author": "JJFX",
-    "version": "1.0.1",
+    "version": "1.0.2",
     "description": "Adds Features and Settings Specific to Klipper Firmware",
     "api": 5,
     "supported_sdk_versions": ["6.0.0", "7.0.0", "8.0.0"]

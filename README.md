@@ -9,7 +9,7 @@ This project is an evolution of my earlier [PressureAdvanceSettingPlugin](https:
 
 *Compatibility tested up to Cura version 5.2.2 (SDK 8.2.0)*<br/>
 
-### Current Release Notes (v1.0.1)
+### Major Release Notes - v1.0.x
 - Z Offset Setting
 - Z Offset Layer 0 feature
 - Pressure Advance Smooth Time
@@ -18,9 +18,23 @@ This project is an evolution of my earlier [PressureAdvanceSettingPlugin](https:
 - Firmware retraction multi-extruder support
 - Firmware retraction uses Cura retraction values by default
 - Various bug fixes and UI improvements
-- _Experimental Features:_
+- *Experimental Features:*
   - Bed Mesh Calibrate
   - Klipper UI Preheat Support
+
+<details><summary><em>Latest Update Notes</em></summary>
+  <p><ul type="square">
+    <li>Bug Fix v1.0.2</li>
+      <ul type="disc">
+        <li>Setting definition compatibility for older versions</li>
+        <li>Fixed duplicate setting relations</li>
+        <li>Fixed changing machines with preset settings enabled</li>
+        <li>Smooth time not tied to pressure advance control</li>
+        <li>Final warnings now combined into single message</li>
+        <li>Minor fixes and setting cleanup</li>
+      </ul>
+  </ul></p>
+</details>
 
 <details><summary><em>Previous Release Notes (Beta)</em></summary>
   <p><ul type="square">
@@ -59,7 +73,7 @@ This project is an evolution of my earlier [PressureAdvanceSettingPlugin](https:
   </ul></p>
 </details>
 
-*Check setting visibility for new features after updating!*
+***Check setting visibility after updating from previous version!***
 
 ### Compatibility
 **Recommended Cura Versions:** 5.0 (SDK 8.0.0) and newer.<br/>
@@ -85,7 +99,7 @@ When first installed, the Klipper Settings category will be hidden and appears a
 - **Tuning Tower Calibration**</br>
   [Klipper Tuning Tower](https://www.klipper3d.org/G-Codes.html#tuning_tower) settings can be used to fine tune a wide range of Klipper commands. Presets are available to easily run common Pressure Advance and Input Shaper calibrations. The *Apply Suggested Settings* option will automatically apply additional printer settings necessary for each calibration as defined in the Klipper documentation. All changed settings are backed up and restored to their prior values when the tuning tower is disabled. Custom presets allow 3 unique profiles to be saved for frequently used settings.
   
-  **Only one active extruder is supported.**
+  *Only one active extruder is supported.*
   
   <details>
   <summary><em>Example of tuning tower preset applied with suggested settings:</em></summary><br><p>
@@ -99,10 +113,10 @@ Klipper's pressure advance feature is used sharpen the appearance of corners, im
 - **Firmware Retraction**</br> 
 Enables the use of <code>G10</code> and <code>G11</code> firmware retraction commands. The <code>[firmware_retraction]</code> section in [Klipper configuration](https://www.klipper3d.org/Config_Reference.html#firmware_retraction) must be enabled to use this feature. Cura's standard retraction settings are mirrored as the default values except <code>UNRETRACT_EXTRA_LENGTH</code> is disabled by default. Multiple extruders are supported without requiring additional macros. Settings for each extruder are applied immediately following gcode tool change commands (T0, T1, etc.).
 
-- **Z offset Control**</br>
+- **Z Offset Control**</br>
   *Initial Layer Z Offset* applies <code>SET_GCODE_OFFSET Z_ADJUST=</code> only before gcode coordinates equal to the first layer height then immediately instructs Klipper to revert the command on the **next z axis change**, even if the print is stopped. For added safety, the maximum adjustment range is +/- first layer height.
 
-  Due to the inherent risk associated with it, no permanent adjustment be made to an existing offset. The *Override Z Offset* feature defines a <b>total z offset value</b> after the start gcode sequence with <code>SET_GCODE_OFFSET Z=</code>. This overrides any existing adjustment since the printer was restarted and ***will remain applied*** after the print has completed. Only recommended for advanced users or to ensure an existing offset is removed. If *Initial Layer Z Offset* is also applied, their affects will be combined.
+  Due to the inherent risk, no permanent adjustment can be made to an existing offset. The *Override Z Offset* feature defines a <b>total z offset value</b> after the start gcode sequence with <code>SET_GCODE_OFFSET Z=</code>. This overrides any existing adjustment since the printer was restarted and ***will remain applied*** after the print has completed. Only recommended for advanced users or to ensure an existing offset is removed. If *Initial Layer Z Offset* is also applied, their affects will be combined.
   
   *Use of these settings are done at your own risk.*
   
@@ -121,16 +135,18 @@ Cura installation packages will be available soon and hopefully KlipperSettings 
 ### Update from Previous Version
 Simply delete and replace contents of KlipperSettingsPlugin folder with those from the latest release. *Make sure all files are replaced*. Any additional files in the previous version are obsolete or temporary and can safely be deleted.
 
+If settings do not appear after updating, check setting visibility then try clearing preferences in Cura.cfg or delete the file and restart.
+
 ### Install from Source Files
 If using the old **PressureAdvanceSettingPlugin**, please remove it before installing KlipperSettings.
   
-Download KlipperSettingsPlugin source [.zip file](https://github.com/jjgraphix/KlipperSettingsPlugin/archive/refs/heads/main.zip) from Github.
+- Download KlipperSettingsPlugin source [.zip file from Github](https://github.com/jjgraphix/KlipperSettingsPlugin/archive/refs/heads/main.zip).
   
-Open Cura, click *Help*, *Show Configuration Folder*, then navigate to "plugins" subfolder and unpack the .zip file.
+- Open Cura, click *Help*, *Show Configuration Folder*, then navigate to "plugins" subfolder and unpack .zip file.
 
-Rename the folder to **"KlipperSettingsPlugin"**, removing any Github suffix (e.g. "-main"). 
+- Rename the folder to **"KlipperSettingsPlugin"**, removing any Github suffix (e.g. "-main"). 
   
-*Repeat process if there's a subfolder of the same name.*<br/><br/>
+- *Repeat process if there's a subfolder of the same name.*<br/><br/>
 
 ## More Info
 
